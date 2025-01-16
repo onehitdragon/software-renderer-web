@@ -1,6 +1,53 @@
-import { drawLine, putPixel } from "./helper";
+import { Scene, arrayToVec3, canvas, ctx, cubeModel, Vec3 } from "./global";
+import { drawLine, putPixel, renderScene } from "./helper";
+import * as dat from "dat.gui";
 
-console.log("hello: " + new Date().toString());
+const gui = new dat.GUI({name: 'My GUI'});
+const folder_Transform = gui.addFolder('Transform');
+const folder_Scale = folder_Transform.addFolder('Scale');
+const folder_Rotation = folder_Transform.addFolder('Rotation');
+const folder_Translation = folder_Transform.addFolder('Translation');
+folder_Transform.open();
+folder_Scale.open();
+folder_Rotation.open();
+folder_Translation.open();
+const scaleGui = {
+    scale: 1,
+}
+const rotationGui = {
+    rotation: 0
+}
+const translationGui: Vec3 = { x: 0, y: 0, z: 9 };
+folder_Scale.add(scaleGui, "scale", 0, 3);
+folder_Rotation.add(rotationGui, "rotation", 0, 360);
+folder_Translation.add(translationGui, "x", -100, 100);
+folder_Translation.add(translationGui, "y", -100, 100);
+folder_Translation.add(translationGui, "z", -100, 100);
 
-drawLine({ x: -50, y: 100 }, { x: 50, y: 120 }, "red");
-drawLine({ x: -10, y: 100 }, { x: 0, y: 200 }, "blue");
+function Main(){
+    ctx.clearRect(0, 0, canvas.cW, canvas.cH);
+
+    const scene: Scene = {
+        instances: []
+    };
+    scene.instances.push({
+        model: cubeModel,
+        transform: {
+            scale: scaleGui.scale,
+            rotation: rotationGui.rotation,
+            translation: translationGui
+        }
+    });
+    renderScene(scene);
+}
+
+Main();
+folder_Scale.__controllers.forEach((controller) => {
+    controller.onChange(Main);
+});
+folder_Rotation.__controllers.forEach((controller) => {
+    controller.onChange(Main);
+});
+folder_Translation.__controllers.forEach((controller) => {
+    controller.onChange(Main);
+});
