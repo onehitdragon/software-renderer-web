@@ -1,5 +1,6 @@
-import { M3x3, multi_M3x3AndVec3, multi_matrix } from "./common/matrix";
-import { Vec2, Vec3, addVec3, scalarVec3, subVec3 } from "./common/vector";
+import { homogeneous3DToCartesian2D, homogeneous4DToCartesian3D, m3x1ToVec3, m4x1ToVec4, vec3ToVec4, vec4ToM4x1 } from "./common/converter";
+import { M3x1, M3x3, M3x4, M4x1, M4x4, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
+import { Vec2, Vec3, Vec4, addVec3, scalarVec3, subVec3 } from "./common/vector";
 import { canvas, viewport, ctx, camera, Trigangle, Instance, Scene, Transform} from "./global";
 
 function putPixel(x: number, y: number, color: CanvasFillStrokeStyles["fillStyle"]){
@@ -83,39 +84,75 @@ function renderTriangle(trigangle: Trigangle, projecteds: Vec2[]){
     );
 }
 
-function scale(vertex: Vec3, scale: number){
-    return scalarVec3(vertex, scale);
-}
-
-function rotate(vertex: Vec3, rotation: number){
-    const rotationRad = rotation * Math.PI / 180;
-    const yRotMatrix: M3x3 = [
-        [Math.cos(rotationRad), 0, Math.sin(rotationRad)],
-        [0, 1, 0],
-        [-Math.sin(rotationRad), 0, Math.cos(rotationRad)]
+function makeModelTransform(transform: Transform): M4x4{
+    const m_scale: M4x4 = [
+        [transform.scale, 0, 0, 0],
+        [0, transform.scale, 0, 0],
+        [0, 0, transform.scale, 0],
+        [0, 0, 0, 1]
     ];
-    vertex = multi_M3x3AndVec3(yRotMatrix, vertex);
+    const rotationRad = transform.rotation * Math.PI / 180;
+    const m_rotation: M4x4 = [
+        [Math.cos(rotationRad), 0, Math.sin(rotationRad), 0],
+        [0, 1, 0, 0],
+        [-Math.sin(rotationRad), 0, Math.cos(rotationRad), 0],
+        [0, 0, 0, 1]
+    ];
+    const m_translation: M4x4 = [
+        [1, 0, 0, transform.translation.x],
+        [0, 1, 0, transform.translation.y],
+        [0, 0, 1, transform.translation.z],
+        [0, 0, 0, 1]
+    ];
 
-    return vertex;
+    return multi_matrix(multi_matrix(m_translation, m_rotation) as M4x4, m_scale) as M4x4;
 }
 
-function translate(vertex: Vec3, translation: Vec3){
-    return addVec3(vertex, translation);
+function makeCameraTransform(): M4x4{
+    const m_translation: M4x4 = [
+        [1, 0, 0, -camera.transform.translation.x],
+        [0, 1, 0, -camera.transform.translation.y],
+        [0, 0, 1, -camera.transform.translation.z],
+        [0, 0, 0, 1]
+    ];
+    const rotationRad = -camera.transform.rotation * Math.PI / 180;
+    const m_rotation: M4x4 = [
+        [Math.cos(rotationRad), 0, Math.sin(rotationRad), 0],
+        [0, 1, 0, 0],
+        [-Math.sin(rotationRad), 0, Math.cos(rotationRad), 0],
+        [0, 0, 0, 1]
+    ];
+
+    return multi_matrix(m_rotation, m_translation) as M4x4;
 }
 
-function applyTransform(vertex: Vec3, transform: Transform): Vec3{
-    vertex = scale(vertex, transform.scale);
-    vertex = rotate(vertex, transform.rotation);
-    vertex = translate(vertex, transform.translation);
-
-    return vertex;
+function makeProjectionTransform(): M3x4{
+    return [
+        [camera.distanceToViewport * canvas.cW / viewport.vW, 0, 0, 0],
+        [0, camera.distanceToViewport * canvas.cH / viewport.vH, 0, 0],
+        [0, 0, 1, 0]
+    ]
 }
 
-function applyCameraTransform(vertex: Vec3){
-    vertex = subVec3(vertex, camera.transform.translation);
-    vertex = rotate(vertex, -camera.transform.rotation);
+function apply(vertex: Vec3, transform: Transform): Vec2{
+    const m_Model = makeModelTransform(transform);
+    const m_Camera = makeCameraTransform();
+    const m_Projection = makeProjectionTransform();
 
-    return vertex;
+    return homogeneous3DToCartesian2D(
+        m3x1ToVec3(
+            multi_matrix(
+                m_Projection,
+                multi_matrix(
+                    multi_matrix(
+                        m_Camera,
+                        m_Model
+                    ) as M4x4,
+                    vec4ToM4x1(vec3ToVec4(vertex, 1))
+                ) as M4x1
+            ) as M3x1
+        )
+    );
 }
 
 function renderInstance(instance: Instance){
@@ -123,9 +160,8 @@ function renderInstance(instance: Instance){
 
     const projecteds: Vec2[] = [];
     for(let vertex of model.vertices) {
-        vertex = applyTransform(vertex, instance.transform);
-        vertex = applyCameraTransform(vertex);
-        projecteds.push(projectVertex(vertex));
+        const vertexTo2D = apply(vertex, instance.transform);
+        projecteds.push(vertexTo2D);
     }
     for(const trigangle of model.trigangles) {
         renderTriangle(trigangle, projecteds);

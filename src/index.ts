@@ -1,4 +1,3 @@
-import { multi_M4x4AndM4x4 } from "./common/matrix";
 import { Vec3 } from "./common/vector";
 import { Scene, canvas, ctx, cubeModel } from "./global";
 import { renderScene } from "./helper";
@@ -22,9 +21,9 @@ const rotationGui = {
 const translationGui: Vec3 = { x: 0, y: 0, z: 9 };
 folder_Scale.add(scaleGui, "scale", 0, 3);
 folder_Rotation.add(rotationGui, "rotation", 0, 360);
-folder_Translation.add(translationGui, "x", -100, 100);
-folder_Translation.add(translationGui, "y", -100, 100);
-folder_Translation.add(translationGui, "z", -100, 100);
+folder_Translation.add(translationGui, "x", -10, 10);
+folder_Translation.add(translationGui, "y", -10, 10);
+folder_Translation.add(translationGui, "z", -10, 10);
 
 function Main(){
     ctx.clearRect(0, 0, canvas.cW, canvas.cH);

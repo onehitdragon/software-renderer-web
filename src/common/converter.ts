@@ -1,5 +1,5 @@
 import { M3x1, M4x1 } from "./matrix";
-import { Vec3, Vec4 } from "./vector";
+import { Vec2, Vec3, Vec4 } from "./vector";
 
 function arrayToVec3(arr: [number, number, number]): Vec3 {
     return { x: arr[0], y: arr[1], z: arr[2] };
@@ -7,6 +7,13 @@ function arrayToVec3(arr: [number, number, number]): Vec3 {
 
 function arrayToVec4(arr: [number, number, number, number]): Vec4 {
     return { x: arr[0], y: arr[1], z: arr[2], w: arr[3] };
+}
+
+function vec3ToVec4(vec3: Vec3, w: number): Vec4{
+    return {
+        ...vec3,
+        w
+    }
 }
 
 function vec3ToM3x1(vec3: Vec3): M3x1{
@@ -43,4 +50,20 @@ function m4x1ToVec4(m4x1: M4x1): Vec4{
     };
 };
 
-export { arrayToVec3, arrayToVec4, vec3ToM3x1, vec4ToM4x1, m3x1ToVec3, m4x1ToVec4 }
+function homogeneous4DToCartesian3D(vec4: Vec4): Vec3{
+    return {
+        x: vec4.x / vec4.w,
+        y: vec4.y / vec4.w,
+        z: vec4.z / vec4.w,
+    }
+}
+
+function homogeneous3DToCartesian2D(vec3: Vec3): Vec2{
+    return {
+        x: vec3.x / vec3.z,
+        y: vec3.y / vec3.z,
+    }
+}
+
+export { arrayToVec3, arrayToVec4, vec3ToM3x1, vec4ToM4x1, m3x1ToVec3,
+    m4x1ToVec4, homogeneous4DToCartesian3D, homogeneous3DToCartesian2D, vec3ToVec4 }
