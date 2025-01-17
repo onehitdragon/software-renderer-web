@@ -1,3 +1,6 @@
+import { arrayToVec3 } from "./common/converter";
+import { Vec3 } from "./common/vector";
+
 const canvasElement = document.getElementById("canvas1") as HTMLCanvasElement | null;
 if(canvasElement == null){
     throw "dont find canvas1";
@@ -14,63 +17,27 @@ const viewport = {
     vW: 1,
     vH: 1
 }
-const camera = {
-    distanceToViewport: 1
+interface Camera{
+    distanceToViewport: number,
+    transform: {
+        translation: Vec3
+        rotation: number, // around y
+    }
 }
-
-interface Vec2{
-    x: number,
-    y: number
-}
-
-interface Vec3 extends Vec2{
-    z: number
-}
-
-interface Vec4 extends Vec3{
-    w: number
+const camera: Camera = {
+    distanceToViewport: 1,
+    transform: {
+        translation: { x: 0, y: 0, z: 0 },
+        rotation: 0,
+    }
 }
 
 interface Trigangle extends Vec3{
     color: string
 }
 
-type M3x3 = [[number, number, number], [number, number, number], [number, number, number]];
-
-function arrayToVec3(arr: [number, number, number]): Vec3 {
-    return { x: arr[0], y: arr[1], z: arr[2] };
-}
-
-function addVec3(vec1: Vec3, vec2: Vec3): Vec3{
-    return {
-        x: vec1.x + vec2.x,
-        y: vec1.y + vec2.y,
-        z: vec1.z + vec2.z
-    }
-}
-
-function scalarVec3(vec3: Vec3, scalar: number){
-    return {
-        x: vec3.x * scalar,
-        y: vec3.y * scalar,
-        z: vec3.z * scalar
-    }
-}
-
-function arrayToVec4(arr: [number, number, number, number]): Vec4 {
-    return { x: arr[0], y: arr[1], z: arr[2], w: arr[3] };
-}
-
 function arrayToTrigangle(arr: [number, number, number, string]): Trigangle {
     return { x: arr[0], y: arr[1], z: arr[2], color: arr[3] };
-}
-
-function multi_M3x3AndVec3(m3x3: M3x3, vec3: Vec3): Vec3{
-    return {
-        x: m3x3[0][0]*vec3.x + m3x3[0][1]*vec3.y + m3x3[0][2]*vec3.z,
-        y: m3x3[1][0]*vec3.x + m3x3[1][1]*vec3.y + m3x3[1][2]*vec3.z,
-        z: m3x3[2][0]*vec3.x + m3x3[2][1]*vec3.y + m3x3[2][2]*vec3.z
-    }
 }
 
 interface Model{
@@ -124,6 +91,6 @@ const cubeModel: Model = {
 
 export { ctx }
 export { canvas, viewport, camera }
-export { Vec2, Vec3, Vec4, Trigangle, M3x3 }
-export { arrayToVec3, addVec3, scalarVec3, arrayToVec4, arrayToTrigangle, multi_M3x3AndVec3 }
+export { Trigangle }
+export { arrayToTrigangle }
 export { Transform, Model, Instance, Scene, cubeModel }

@@ -1,5 +1,7 @@
-import { Scene, arrayToVec3, canvas, ctx, cubeModel, Vec3 } from "./global";
-import { drawLine, putPixel, renderScene } from "./helper";
+import { multi_M4x4AndM4x4 } from "./common/matrix";
+import { Vec3 } from "./common/vector";
+import { Scene, canvas, ctx, cubeModel } from "./global";
+import { renderScene } from "./helper";
 import * as dat from "dat.gui";
 
 const gui = new dat.GUI({name: 'My GUI'});

@@ -1,4 +1,6 @@
-import { canvas, viewport, ctx, Vec2, Vec3, camera, arrayToVec3, arrayToVec4, arrayToTrigangle, Trigangle, addVec3, Instance, Scene, Transform, scalarVec3, multi_M3x3AndVec3, M3x3 } from "./global";
+import { M3x3, multi_M3x3AndVec3, multi_matrix } from "./common/matrix";
+import { Vec2, Vec3, addVec3, scalarVec3, subVec3 } from "./common/vector";
+import { canvas, viewport, ctx, camera, Trigangle, Instance, Scene, Transform} from "./global";
 
 function putPixel(x: number, y: number, color: CanvasFillStrokeStyles["fillStyle"]){
     x += canvas.cW / 2;
@@ -51,14 +53,6 @@ function drawLine(start: Vec2, end: Vec2, color: CanvasFillStrokeStyles["fillSty
         }
     }
 }
-
-// function canvasToViewport(cPoint: Vec2): Vec3{
-//     return {
-//         x: cPoint.x * viewport.vW / canvas.cW,
-//         y: cPoint.y * viewport.vH / canvas.cH,
-//         z: camera.distanceToViewport
-//     };
-// }
 
 function viewportToCanvas(vPoint: Vec2): Vec2{
     return {
@@ -117,12 +111,20 @@ function applyTransform(vertex: Vec3, transform: Transform): Vec3{
     return vertex;
 }
 
+function applyCameraTransform(vertex: Vec3){
+    vertex = subVec3(vertex, camera.transform.translation);
+    vertex = rotate(vertex, -camera.transform.rotation);
+
+    return vertex;
+}
+
 function renderInstance(instance: Instance){
     const model = instance.model;
 
     const projecteds: Vec2[] = [];
     for(let vertex of model.vertices) {
         vertex = applyTransform(vertex, instance.transform);
+        vertex = applyCameraTransform(vertex);
         projecteds.push(projectVertex(vertex));
     }
     for(const trigangle of model.trigangles) {
