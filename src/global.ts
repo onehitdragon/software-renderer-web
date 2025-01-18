@@ -14,8 +14,8 @@ const canvas = {
     cH
 };
 const viewport = {
-    vW: 1,
-    vH: 1
+    vW: 2,
+    vH: 2
 }
 interface Camera{
     distanceToViewport: number,
@@ -43,7 +43,7 @@ function arrayToTrigangle(arr: [number, number, number, string]): Trigangle {
 interface Model{
     name: string,
     vertices: Vec3[],
-    trigangles: Trigangle[]
+    triangles: Trigangle[]
 }
 
 interface Transform{
@@ -73,7 +73,7 @@ const cubeModel: Model = {
         arrayToVec3([-1, -1, -1]),
         arrayToVec3([1, -1, -1])
     ],
-    trigangles: [
+    triangles: [
         arrayToTrigangle([0, 1, 2, "red"]),
         arrayToTrigangle([0, 2, 3, "red"]),
         arrayToTrigangle([4, 0, 3, "green"]),

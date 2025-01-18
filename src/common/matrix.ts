@@ -70,5 +70,5 @@ function multi_M4x4AndVec4(m4x4: M4x4, vec4: Vec4): Vec4{
     return m4x1ToVec4(multi_matrix(m4x4, vec4ToM4x1(vec4)) as M4x1);
 }
 
-export { M3x1, M4x1, M3x3, M4x4, M3x4 }
+export { Matrix, M3x1, M4x1, M3x3, M4x4, M3x4 }
 export { multi_matrix, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_M4x4AndM4x4 }

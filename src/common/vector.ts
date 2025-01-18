@@ -35,5 +35,17 @@ function scalarVec3(vec3: Vec3, scalar: number){
     }
 }
 
+function lengthVec3(vec3: Vec3){
+    return Math.sqrt(
+        Math.pow(vec3.x, 2) +
+        Math.pow(vec3.y, 2) +
+        Math.pow(vec3.z, 2)
+    );
+}
+
+function dot(vec1: Vec3, vec2: Vec3){
+    return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
+}
+
 export { Vec2, Vec3, Vec4 }
-export { addVec3, subVec3, scalarVec3 }
+export { addVec3, subVec3, scalarVec3, lengthVec3, dot }

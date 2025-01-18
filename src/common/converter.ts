@@ -50,6 +50,14 @@ function m4x1ToVec4(m4x1: M4x1): Vec4{
     };
 };
 
+function m4x1ToVec3(m4x1: M4x1): Vec3{
+    return {
+        x: m4x1[0][0],
+        y: m4x1[1][0],
+        z: m4x1[2][0]
+    };
+};
+
 function homogeneous4DToCartesian3D(vec4: Vec4): Vec3{
     return {
         x: vec4.x / vec4.w,
@@ -66,4 +74,4 @@ function homogeneous3DToCartesian2D(vec3: Vec3): Vec2{
 }
 
 export { arrayToVec3, arrayToVec4, vec3ToM3x1, vec4ToM4x1, m3x1ToVec3,
-    m4x1ToVec4, homogeneous4DToCartesian3D, homogeneous3DToCartesian2D, vec3ToVec4 }
+    m4x1ToVec4, homogeneous4DToCartesian3D, homogeneous3DToCartesian2D, vec3ToVec4, m4x1ToVec3 }

@@ -18,7 +18,7 @@ const scaleGui = {
 const rotationGui = {
     rotation: 0
 }
-const translationGui: Vec3 = { x: 0, y: 0, z: 9 };
+const translationGui: Vec3 = { x: 0, y: 0, z: 5 };
 folder_Scale.add(scaleGui, "scale", 0, 3);
 folder_Rotation.add(rotationGui, "rotation", 0, 360);
 folder_Translation.add(translationGui, "x", -10, 10);

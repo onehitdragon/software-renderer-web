@@ -1,6 +1,7 @@
-import { homogeneous3DToCartesian2D, homogeneous4DToCartesian3D, m3x1ToVec3, m4x1ToVec4, vec3ToVec4, vec4ToM4x1 } from "./common/converter";
-import { M3x1, M3x3, M3x4, M4x1, M4x4, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
-import { Vec2, Vec3, Vec4, addVec3, scalarVec3, subVec3 } from "./common/vector";
+import { homogeneous3DToCartesian2D, homogeneous4DToCartesian3D, m3x1ToVec3, m4x1ToVec3, m4x1ToVec4, vec3ToVec4, vec4ToM4x1 } from "./common/converter";
+import { M3x1, M3x3, M3x4, M4x1, M4x4, Matrix, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
+import { Plane, distancePointToPlane } from "./common/plane";
+import { Vec2, Vec3, Vec4, addVec3, lengthVec3, scalarVec3, subVec3 } from "./common/vector";
 import { canvas, viewport, ctx, camera, Trigangle, Instance, Scene, Transform} from "./global";
 
 function putPixel(x: number, y: number, color: CanvasFillStrokeStyles["fillStyle"]){
@@ -134,37 +135,199 @@ function makeProjectionTransform(): M3x4{
     ]
 }
 
-function apply(vertex: Vec3, transform: Transform): Vec2{
+function apply(vertex: Vec3, transform: Transform): Vec3{
     const m_Model = makeModelTransform(transform);
     const m_Camera = makeCameraTransform();
+
+    return m4x1ToVec3(
+        multi_matrix(
+            multi_matrix(
+                m_Camera,
+                m_Model
+            ) as M4x4,
+            vec4ToM4x1(vec3ToVec4(vertex, 1))
+        ) as M4x1
+    );
+}
+
+function getBoudingSphere(verticies: Vec3[]): [Vec3, number]{
+    let centerSphere: Vec3 = { x: 0, y: 0, z: 0 };
+    let rSphere = 0;
+    for(const vertex of verticies){
+        centerSphere.x += vertex.x;
+        centerSphere.y += vertex.y;
+        centerSphere.z += vertex.z;
+    }
+    centerSphere.x /= verticies.length;
+    centerSphere.y /= verticies.length;
+    centerSphere.z /= verticies.length;
+    for(const vertex of verticies){
+        const distanceVertexAndCenter = lengthVec3(subVec3(vertex, centerSphere));
+        if(rSphere < distanceVertexAndCenter){
+            rSphere = distanceVertexAndCenter;
+        }
+    }
+
+    return [centerSphere, rSphere];
+}
+
+function getClippingPlanes(){
+    const nearPlane: Plane = {
+        normal: { x: 0, y: 0, z: 1 },
+        D: -camera.distanceToViewport
+    };
+    const leftPlane: Plane = {
+        normal: { x: 1 / Math.sqrt(2), y: 0, z: 1 / Math.sqrt(2) },
+        D: 0
+    };
+    const rightPlane: Plane = {
+        normal: { x: -1 / Math.sqrt(2), y: 0, z: 1 / Math.sqrt(2) },
+        D: 0
+    };
+    const bottomPlane: Plane = {
+        normal: { x: 0, y: 1 / Math.sqrt(2), z: 1 / Math.sqrt(2) },
+        D: 0
+    };
+    const topPlane: Plane = {
+        normal: { x: 0, y: -1 / Math.sqrt(2), z: 1 / Math.sqrt(2) },
+        D: 0
+    };
+
+    return [nearPlane, leftPlane, rightPlane, bottomPlane, topPlane];
+}
+
+function clipWholeObject(clippingPlanes: Plane[], sphere: [Vec3, number]){
+    const rears: number[] = [];
+    const fronts: number[] = [];
+    const intersects: number[] = [];
+
+    const [centerSphere, rSphere] = sphere;
+    for(let i = 0; i < clippingPlanes.length; i++){
+        const plane = clippingPlanes[i];
+        const d = distancePointToPlane(plane, centerSphere);
+        if(d < -rSphere){
+            rears.push(i);
+        }
+        if(d > rSphere){
+            fronts.push(i);
+        }
+        if(Math.abs(d) < rSphere){
+            intersects.push(i);
+        }
+    }
+
+    // console.log("rears: ", rears.length);
+    // console.log("fronts: ", fronts.length);
+    // console.log("intersects: ", intersects.length);
+    return { rears, fronts, intersects };
+}
+
+function clipTriangle(intersectPlanes: Plane[], triangles: Trigangle[], verticies: Vec3[]){
+    const triangleStatuses: {
+        rears: number[], fronts: number[], intersects: number[]
+    }[] = [];
+    const triangleIntersectStatuses: {
+        triangleIndex: number,
+        rears: number[], fronts: number[], intersects: number[]
+    }[] = [];
+
+    for(let j = 0; j < triangles.length; j++){
+        triangleStatuses.push({ rears: [], fronts: [], intersects: []});
+        const triangle = triangles[j];
+        for(let i = 0; i < intersectPlanes.length; i++){
+            const plane = intersectPlanes[i];
+            const dA = distancePointToPlane(plane, verticies[triangle.x]);
+            const dB = distancePointToPlane(plane, verticies[triangle.y]);
+            const dC = distancePointToPlane(plane, verticies[triangle.z]);
+            if(dA < 0 && dB < 0 && dC < 0){
+                triangleStatuses[j].rears.push(i);
+            }
+            else if(dA > 0 && dB > 0 && dC > 0){
+                triangleStatuses[j].fronts.push(i);
+            }
+            else{
+
+            }
+        }
+    }
+}
+
+function clipping(verticies: Vec3[]){
+    const clippingPlanes = getClippingPlanes();
+    const status = clipWholeObject(clippingPlanes, getBoudingSphere(verticies));
+    if(status.rears.length > 0){
+
+    }
+    if(status.fronts.length == clippingPlanes.length){
+        
+    }
+}
+
+function project(vertex: Vec3): Vec2{
     const m_Projection = makeProjectionTransform();
 
     return homogeneous3DToCartesian2D(
         m3x1ToVec3(
             multi_matrix(
                 m_Projection,
-                multi_matrix(
-                    multi_matrix(
-                        m_Camera,
-                        m_Model
-                    ) as M4x4,
-                    vec4ToM4x1(vec3ToVec4(vertex, 1))
-                ) as M4x1
+                vec4ToM4x1(vec3ToVec4(vertex, 1))
             ) as M3x1
         )
     );
 }
 
+
+// function apply(vertex: Vec3, transform: Transform): Vec2{
+//     const m_Model = makeModelTransform(transform);
+//     const m_Camera = makeCameraTransform();
+//     const m_Projection = makeProjectionTransform();
+
+//     return homogeneous3DToCartesian2D(
+//         m3x1ToVec3(
+//             multi_matrix(
+//                 multi_matrix(
+//                     multi_matrix(
+//                         m_Projection,
+//                         m_Camera
+//                     ) as M3x4,
+//                     m_Model
+//                 ) as M3x4,
+//                 vec4ToM4x1(vec3ToVec4(vertex, 1))
+//             ) as M3x1
+//         )
+//     );
+// }
+
+// function renderInstance(instance: Instance){
+//     const model = instance.model;
+
+//     const projecteds: Vec2[] = [];
+//     for(let vertex of model.vertices){
+//         vertex = apply(vertex, instance.transform);
+//         const vertexTo2D = project(vertex);
+//         projecteds.push(vertexTo2D);
+//     }
+//     for(const trigangle of model.trigangles){
+//         renderTriangle(trigangle, projecteds);
+//     }
+// }
+
 function renderInstance(instance: Instance){
     const model = instance.model;
 
     const projecteds: Vec2[] = [];
-    for(let vertex of model.vertices) {
-        const vertexTo2D = apply(vertex, instance.transform);
+    const applieds: Vec3[] = [];
+    for(let vertex of model.vertices){
+        vertex = apply(vertex, instance.transform);
+        applieds.push(vertex);
+        const vertexTo2D = project(vertex);
         projecteds.push(vertexTo2D);
     }
-    for(const trigangle of model.trigangles) {
-        renderTriangle(trigangle, projecteds);
+
+    clipping(applieds);
+    
+    for(const triangle of model.triangles){
+        renderTriangle(triangle, projecteds);
     }
 }
 
