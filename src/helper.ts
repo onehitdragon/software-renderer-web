@@ -42,7 +42,7 @@ function drawLine(start: Vec2, end: Vec2, color: CanvasFillStrokeStyles["fillSty
         }
         const ys = interpolate(start.x, start.y, end.x, end.y);
         for(let x = start.x; x <= end.x; x++){
-            putPixel(x, ys[x - start.x], color);
+            putPixel(x, ys[Math.ceil(x - start.x)], color);
         }
     }
     else{
@@ -51,7 +51,7 @@ function drawLine(start: Vec2, end: Vec2, color: CanvasFillStrokeStyles["fillSty
         }
         const xs = interpolate(start.y, start.x, end.y, end.x);
         for(let y = start.y; y <= end.y; y++){
-            putPixel(xs[y - start.y], y, color);
+            putPixel(xs[Math.ceil(y - start.y)], y, color);
         }
     }
 }
