@@ -9,7 +9,7 @@ function arrayToVec4(arr: [number, number, number, number]): Vec4 {
     return { x: arr[0], y: arr[1], z: arr[2], w: arr[3] };
 }
 
-function vec3ToVec4(vec3: Vec3, w: number): Vec4{
+function vec3ToVec4(vec3: Readonly<Vec3>, w: number): Vec4{
     return {
         ...vec3,
         w

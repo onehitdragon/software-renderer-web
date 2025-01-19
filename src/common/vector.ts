@@ -11,6 +11,14 @@ interface Vec4 extends Vec3{
     w: number
 }
 
+function createVec3(){
+    return {
+        x: 0,
+        y: 0,
+        z: 0
+    }
+}
+
 function addVec3(vec1: Vec3, vec2: Vec3): Vec3{
     return {
         x: vec1.x + vec2.x,
@@ -27,7 +35,7 @@ function subVec3(vec1: Vec3, vec2: Vec3): Vec3{
     }
 }
 
-function scalarVec3(vec3: Vec3, scalar: number){
+function scalarVec3(scalar: number, vec3: Vec3){
     return {
         x: vec3.x * scalar,
         y: vec3.y * scalar,
@@ -48,4 +56,4 @@ function dot(vec1: Vec3, vec2: Vec3){
 }
 
 export { Vec2, Vec3, Vec4 }
-export { addVec3, subVec3, scalarVec3, lengthVec3, dot }
+export { createVec3, addVec3, subVec3, scalarVec3, lengthVec3, dot }

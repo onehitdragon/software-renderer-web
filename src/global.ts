@@ -32,18 +32,18 @@ const camera: Camera = {
     }
 }
 
-interface Trigangle extends Vec3{
+interface Triangle extends Vec3{
     color: string
 }
 
-function arrayToTrigangle(arr: [number, number, number, string]): Trigangle {
+function arrayToTrigangle(arr: [number, number, number, string]): Triangle {
     return { x: arr[0], y: arr[1], z: arr[2], color: arr[3] };
 }
 
 interface Model{
-    name: string,
-    vertices: Vec3[],
-    triangles: Trigangle[]
+    name: Readonly<string>,
+    vertices: readonly Readonly<Vec3>[],
+    triangles: readonly Readonly<Triangle>[]
 }
 
 interface Transform{
@@ -91,6 +91,6 @@ const cubeModel: Model = {
 
 export { ctx }
 export { canvas, viewport, camera }
-export { Trigangle }
+export { Triangle }
 export { arrayToTrigangle }
 export { Transform, Model, Instance, Scene, cubeModel }

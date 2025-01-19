@@ -39,6 +39,7 @@ function Main(){
             translation: translationGui
         }
     });
+    console.clear();
     renderScene(scene);
 }
 
@@ -52,3 +53,4 @@ folder_Rotation.__controllers.forEach((controller) => {
 folder_Translation.__controllers.forEach((controller) => {
     controller.onChange(Main);
 });
+
