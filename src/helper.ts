@@ -5,14 +5,14 @@ import { Vec2, Vec3, Vec4, addVec3, createVec3, dot, lengthVec3, scalarVec3, sub
 import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer, RenderStatus} from "./global";
 
 function putPixel(x: number, y: number, color: Vec4){
-    x = (x | 0) + canvas.cW / 2;
-    y = -(y | 0) + canvas.cW / 2;
+    x = (x | 0) + canvas.half_cW;
+    y = -(y | 0) + canvas.half_cH;
 
     if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
         return;
     }
 
-    let offset = (x * 4) + (y * 4 * canvas.cW);
+    let offset = (x * 4) + (y * canvas.four_mul_cW);
 
     ctxBuffer.data[offset] = color.x;
     ctxBuffer.data[++offset] = color.y;
@@ -115,8 +115,9 @@ function drawFilledTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: Vec4){
     }
 
     for(let y = p1.y; y <= p3.y; y++){
-        const xLeft = x13[Math.ceil(y - p1.y)];
-        const xRight = x123[Math.ceil(y - p1.y)];
+        const index = Math.ceil(y - p1.y);
+        const xLeft = x13[index];
+        const xRight = x123[index];
         for(let x = xLeft, j = 0; x <= xRight; x++, j++){
             putPixel(x, y, color);
         }
@@ -555,7 +556,7 @@ function renderScene(scene: Scene, renderStatus?: RenderStatus){
     for (const instance of scene.instances) {
         renderInstance(instance, renderStatus);
     }
-    
+
     ctx.putImageData(ctxBuffer, 0, 0);
     ctxBuffer.data.fill(0);
 }

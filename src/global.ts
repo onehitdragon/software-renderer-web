@@ -12,7 +12,10 @@ const ctx = canvasElement.getContext("2d")!;
 const ctxBuffer = ctx.getImageData(0, 0, cW, cH);
 const canvas = {
     cW,
-    cH
+    cH,
+    half_cW: cW / 2,
+    half_cH: cH / 2,
+    four_mul_cW: 4 * cW
 };
 const viewport = {
     vW: 2,
