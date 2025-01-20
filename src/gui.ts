@@ -1,4 +1,4 @@
-import { Instance, Scene } from "./global";
+import { Instance, RenderStatus, Scene } from "./global";
 import { Pane } from 'tweakpane';
 
 const pane = new Pane();
@@ -10,4 +10,63 @@ function addIntanceGui(instance: Instance){
     f.addBinding(instance.transform, "scale");
 }
 
-export { pane, addIntanceGui }
+interface Monitor{
+    recording: boolean,
+    fps: number
+}
+
+function addMonitor(monitor: Monitor, renderStatus: RenderStatus){
+    const f = pane.addFolder({ title: "Monitor" });
+    const btn = f.addButton({ title: "Toggle record" });
+    f.addBinding(monitor, "recording", {
+        readonly: true
+    });
+    f.addBinding(monitor, "fps", {
+        readonly: true, format: (v) => v.toFixed(0)
+    });
+    f.addBinding(renderStatus, "totalTrig", {
+        readonly: true, format: (v) => v.toFixed(0)
+    })
+
+    return [btn]
+}
+
+function showMonitor(){
+    let start = 0;
+    let fps = 0;
+    const monitor: Monitor = {
+        recording: true,
+        fps: 0
+    };
+    const renderStatus: RenderStatus = {
+        totalTrig: 0
+    };
+    const [btn] = addMonitor(monitor, renderStatus);
+    btn.element.querySelector("button")!.setAttribute("style", `color: ${monitor.recording ? "green" : "red"};`);
+    btn.on("click", () => {
+        monitor.recording = !monitor.recording;
+        btn.element.querySelector("button")!.setAttribute("style", `color: ${monitor.recording ? "green" : "red"};`);
+    });
+
+    return [
+        () => {
+            if(!monitor.recording){
+                return;
+            }
+
+            const end = performance.now();
+            const elapsed = (end - start) / 1000;
+            if(elapsed < 1){
+                fps++;
+            }
+            else{
+                monitor.fps = fps;
+                start = performance.now();
+                fps = 0;
+            }
+        },
+        renderStatus
+    ] as const;
+}
+
+export { pane, addIntanceGui, showMonitor }

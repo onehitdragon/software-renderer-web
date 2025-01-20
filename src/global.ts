@@ -62,6 +62,10 @@ interface Scene{
     instances: Instance[]
 }
 
+interface RenderStatus{
+    totalTrig: number
+}
+
 const cubeModel: Model = {
     name: "cube",
     vertices:  [
@@ -94,4 +98,4 @@ export { ctx, ctxBuffer }
 export { canvas, viewport, camera }
 export { Triangle }
 export { arrayToTrigangle }
-export { Transform, Model, Instance, Scene, cubeModel }
+export { Transform, Model, Instance, Scene, cubeModel, RenderStatus }

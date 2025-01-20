@@ -2,7 +2,7 @@ import { homogeneous3DToCartesian2D, homogeneous4DToCartesian3D, m3x1ToVec3, m4x
 import { M3x1, M3x3, M3x4, M4x1, M4x4, Matrix, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
 import { Plane, distancePointToPlane } from "./common/plane";
 import { Vec2, Vec3, Vec4, addVec3, createVec3, dot, lengthVec3, scalarVec3, subVec3 } from "./common/vector";
-import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer} from "./global";
+import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer, RenderStatus} from "./global";
 
 function putPixel(x: number, y: number, color: Vec4){
     x = (x | 0) + canvas.cW / 2;
@@ -520,7 +520,7 @@ function project(vertex: Vec3): Vec2{
     );
 }
 
-function renderInstance(instance: Instance){
+function renderInstance(instance: Instance, renderStatus?: RenderStatus){
     const model = instance.model;
 
     const applieds: Vec3[] = [];
@@ -541,12 +541,21 @@ function renderInstance(instance: Instance){
     for(const triangle of clippingTriangles){
         renderTriangle(triangle, projecteds);
     }
+
+    if(renderStatus){
+        renderStatus.totalTrig += clippingTriangles.length;
+    }
 }
 
-function renderScene(scene: Scene){
-    for (const instance of scene.instances) {
-        renderInstance(instance);
+function renderScene(scene: Scene, renderStatus?: RenderStatus){
+    if(renderStatus){
+        renderStatus.totalTrig = 0;
     }
+    
+    for (const instance of scene.instances) {
+        renderInstance(instance, renderStatus);
+    }
+    
     ctx.putImageData(ctxBuffer, 0, 0);
     ctxBuffer.data.fill(0);
 }

@@ -1,6 +1,6 @@
 import { Vec3 } from "./common/vector";
 import { Scene, canvas, ctx, cubeModel } from "./global";
-import { addIntanceGui, pane } from "./gui";
+import * as gui from "./gui";
 import { renderScene } from "./helper";
 
 const scene: Scene = {
@@ -25,15 +25,13 @@ const scene: Scene = {
 };
 
 for(const instance of scene.instances){
-    addIntanceGui(instance);
+    gui.addIntanceGui(instance);
 }
 
-pane.on("change", (ev) => {
-    
-});
-
+const [updateMonitor, renderStatus] = gui.showMonitor();
 function Main(){
-    renderScene(scene);
+    renderScene(scene, renderStatus);
+    updateMonitor();
 }
 
 function Loop(){
