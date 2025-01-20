@@ -2,14 +2,31 @@ import { homogeneous3DToCartesian2D, homogeneous4DToCartesian3D, m3x1ToVec3, m4x
 import { M3x1, M3x3, M3x4, M4x1, M4x4, Matrix, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
 import { Plane, distancePointToPlane } from "./common/plane";
 import { Vec2, Vec3, Vec4, addVec3, createVec3, dot, lengthVec3, scalarVec3, subVec3 } from "./common/vector";
-import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform} from "./global";
+import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer} from "./global";
 
-function putPixel(x: number, y: number, color: CanvasFillStrokeStyles["fillStyle"]){
-    x += canvas.cW / 2;
-    y = -y + canvas.cW / 2;
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, 1, 1);
+function putPixel(x: number, y: number, color: Vec4){
+    x = (x | 0) + canvas.cW / 2;
+    y = -(y | 0) + canvas.cW / 2;
+
+    if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
+        return;
+    }
+
+    let offset = (x * 4) + (y * 4 * canvas.cW);
+
+    ctxBuffer.data[offset] = color.x;
+    ctxBuffer.data[++offset] = color.y;
+    ctxBuffer.data[++offset] = color.z;
+    ctxBuffer.data[++offset] = color.w;
 }
+
+// function putPixel(x: number, y: number, color: CanvasFillStrokeStyles["fillStyle"]){
+//     x = (x | 0) + canvas.cW / 2;
+//     y = -(y | 0) + canvas.cW / 2;
+
+//     ctx.fillStyle = color;
+//     ctx.fillRect(x, y, 1, 1);
+// }
 
 function swap(vec1: Vec2, vec2: Vec2){
     return [vec2, vec1];
@@ -32,7 +49,7 @@ function interpolate(i0: number, d0: number, i1: number, d1: number){
     return values;
 }
 
-function drawLine(start: Vec2, end: Vec2, color: CanvasFillStrokeStyles["fillStyle"]){
+function drawLine(start: Vec2, end: Vec2, color: Vec4){
     const dx = Math.abs(end.x - start.x);
     const dy = Math.abs(end.y - start.y);
 
@@ -70,14 +87,44 @@ function projectVertex(v: Vec3): Vec2{
     });
 }
 
-function drawTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: CanvasFillStrokeStyles["fillStyle"]){
+function drawTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: Vec4){
     drawLine(p1, p2, color);
     drawLine(p2, p3, color);
     drawLine(p3, p1, color);
 }
 
+function drawFilledTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: Vec4){
+    if(p1.y > p2.y){
+        [p1, p2] = swap(p1, p2);
+    }
+    if(p1.y > p3.y){
+        [p1, p3] = swap(p1, p3);
+    }
+    if(p2.y > p3.y){
+        [p2, p3] = swap(p2, p3);
+    }
+
+    let x13 = interpolate(p1.y, p1.x, p3.y, p3.x);
+    const x12 = interpolate(p1.y, p1.x, p2.y, p2.x);
+    const x23 = interpolate(p2.y, p2.x, p3.y, p3.x);
+    let x123 = [...x12, ...x23];
+
+    x12.pop();
+    if(x13[Math.floor(x13.length / 2)] > x123[Math.floor(x123.length / 2)]){
+        [x13, x123] = [x123, x13];
+    }
+
+    for(let y = p1.y; y <= p3.y; y++){
+        const xLeft = x13[Math.ceil(y - p1.y)];
+        const xRight = x123[Math.ceil(y - p1.y)];
+        for(let x = xLeft, j = 0; x <= xRight; x++, j++){
+            putPixel(x, y, color);
+        }
+    }
+}
+
 function renderTriangle(trigangle: Triangle, projecteds: Vec2[]){
-    drawTriangle(
+    drawFilledTriangle(
         projecteds[trigangle.x],
         projecteds[trigangle.y],
         projecteds[trigangle.z],
@@ -237,9 +284,9 @@ function clipWholeObject(clippingPlanes: Plane[], sphere: [Vec3, number]){
         }
     }
 
-    console.log("rears: ", rears.length);
-    console.log("fronts: ", fronts.length);
-    console.log("intersects: ", intersects.length);
+    // console.log("rears: ", rears.length);
+    // console.log("fronts: ", fronts.length);
+    // console.log("intersects: ", intersects.length);
     return { rears, fronts, intersects };
 }
 
@@ -473,20 +520,6 @@ function project(vertex: Vec3): Vec2{
     );
 }
 
-// function renderInstance(instance: Instance){
-//     const model = instance.model;
-
-//     const projecteds: Vec2[] = [];
-//     for(let vertex of model.vertices){
-//         vertex = apply(vertex, instance.transform);
-//         const vertexTo2D = project(vertex);
-//         projecteds.push(vertexTo2D);
-//     }
-//     for(const trigangle of model.trigangles){
-//         renderTriangle(trigangle, projecteds);
-//     }
-// }
-
 function renderInstance(instance: Instance){
     const model = instance.model;
 
@@ -505,7 +538,6 @@ function renderInstance(instance: Instance){
         projecteds.push(vertexTo2D);
     }
 
-    console.log(applieds, clippingTriangles);
     for(const triangle of clippingTriangles){
         renderTriangle(triangle, projecteds);
     }
@@ -515,6 +547,8 @@ function renderScene(scene: Scene){
     for (const instance of scene.instances) {
         renderInstance(instance);
     }
+    ctx.putImageData(ctxBuffer, 0, 0);
+    ctxBuffer.data.fill(0);
 }
 
 export { putPixel, drawLine, renderScene }

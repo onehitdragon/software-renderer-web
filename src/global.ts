@@ -1,5 +1,5 @@
-import { arrayToVec3 } from "./common/converter";
-import { Vec3 } from "./common/vector";
+import { arrayToVec3, arrayToVec4 } from "./common/converter";
+import { Vec3, Vec4, colorToVec4 } from "./common/vector";
 
 const canvasElement = document.getElementById("canvas1") as HTMLCanvasElement | null;
 if(canvasElement == null){
@@ -9,6 +9,7 @@ if(canvasElement == null){
 const cW = canvasElement.getAttribute("width") as unknown as number;
 const cH = canvasElement.getAttribute("height") as unknown as number;
 const ctx = canvasElement.getContext("2d")!;
+const ctxBuffer = ctx.getImageData(0, 0, cW, cH);
 const canvas = {
     cW,
     cH
@@ -33,10 +34,10 @@ const camera: Camera = {
 }
 
 interface Triangle extends Vec3{
-    color: string
+    color: Vec4
 }
 
-function arrayToTrigangle(arr: [number, number, number, string]): Triangle {
+function arrayToTrigangle(arr: [number, number, number, Vec4]): Triangle {
     return { x: arr[0], y: arr[1], z: arr[2], color: arr[3] };
 }
 
@@ -74,22 +75,22 @@ const cubeModel: Model = {
         arrayToVec3([1, -1, -1])
     ],
     triangles: [
-        arrayToTrigangle([0, 1, 2, "red"]),
-        arrayToTrigangle([0, 2, 3, "red"]),
-        arrayToTrigangle([4, 0, 3, "green"]),
-        arrayToTrigangle([4, 3, 7, "green"]),
-        arrayToTrigangle([5, 4, 7, "blue"]),
-        arrayToTrigangle([5, 7, 6, "blue"]),
-        arrayToTrigangle([1, 5, 6, "yellow"]),
-        arrayToTrigangle([1, 6, 2, "yellow"]),
-        arrayToTrigangle([4, 5, 1, "purple"]),
-        arrayToTrigangle([4, 1, 0, "purple"]),
-        arrayToTrigangle([2, 6, 7, "cyan"]),
-        arrayToTrigangle([2, 7, 3, "cyan"]),
+        arrayToTrigangle([0, 1, 2, colorToVec4("red")]),
+        arrayToTrigangle([0, 2, 3, colorToVec4("red")]),
+        arrayToTrigangle([4, 0, 3, colorToVec4("green")]),
+        arrayToTrigangle([4, 3, 7, colorToVec4("green")]),
+        arrayToTrigangle([5, 4, 7, colorToVec4("blue")]),
+        arrayToTrigangle([5, 7, 6, colorToVec4("blue")]),
+        arrayToTrigangle([1, 5, 6, colorToVec4("yellow")]),
+        arrayToTrigangle([1, 6, 2, colorToVec4("yellow")]),
+        arrayToTrigangle([4, 5, 1, colorToVec4("purple")]),
+        arrayToTrigangle([4, 1, 0, colorToVec4("purple")]),
+        arrayToTrigangle([2, 6, 7, colorToVec4("cyan")]),
+        arrayToTrigangle([2, 7, 3, colorToVec4("cyan")]),
     ]
 };
 
-export { ctx }
+export { ctx, ctxBuffer }
 export { canvas, viewport, camera }
 export { Triangle }
 export { arrayToTrigangle }
