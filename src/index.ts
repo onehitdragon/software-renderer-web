@@ -8,7 +8,7 @@ const scene: Scene = {
         {
             model: cubeModel,
             transform: {
-                scale: 2,
+                scale: 1,
                 rotation: 0,
                 translation: { x: 0, y: 0, z: 4.5 }
             }

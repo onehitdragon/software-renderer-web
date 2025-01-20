@@ -1,8 +1,31 @@
-import { homogeneous3DToCartesian2D, homogeneous4DToCartesian3D, m3x1ToVec3, m4x1ToVec3, m4x1ToVec4, vec3ToVec4, vec4ToM4x1 } from "./common/converter";
+import { homogeneous3DToCartesian, m3x1ToVec3, m4x1ToVec3, m4x1ToVec4, vec3ToVec4, vec4ToM4x1 } from "./common/converter";
 import { M3x1, M3x3, M3x4, M4x1, M4x4, Matrix, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
 import { Plane, distancePointToPlane } from "./common/plane";
 import { Vec2, Vec3, Vec4, addVec3, createVec3, dot, lengthVec3, scalarVec3, subVec3 } from "./common/vector";
-import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer, RenderStatus} from "./global";
+import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer, RenderStatus, depthBuffer} from "./global";
+
+function putPixelZ(x: number, y: number, z: number, color: Vec4){
+    x = (x | 0) + canvas.half_cW;
+    y = -(y | 0) + canvas.half_cH;
+
+    if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
+        return;
+    }
+
+    if(z > depthBuffer[x + y * canvas.cW]){
+        return;
+    }
+    else{
+        depthBuffer[x + y * canvas.cW] = z;
+    }
+
+    let offset = (x * 4) + (y * canvas.four_mul_cW);
+
+    ctxBuffer.data[offset] = color.x;
+    ctxBuffer.data[offset + 1] = color.y;
+    ctxBuffer.data[offset + 2] = color.z;
+    ctxBuffer.data[offset + 3] = color.w;
+}
 
 function putPixel(x: number, y: number, color: Vec4){
     x = (x | 0) + canvas.half_cW;
@@ -28,8 +51,8 @@ function putPixel(x: number, y: number, color: Vec4){
 //     ctx.fillRect(x, y, 1, 1);
 // }
 
-function swap(vec1: Vec2, vec2: Vec2){
-    return [vec2, vec1];
+function swap<T1, T2>(vec1: T1, vec2: T2){
+    return [vec2, vec1] as const;
 }
 
 function interpolate(i0: number, d0: number, i1: number, d1: number){
@@ -87,13 +110,13 @@ function projectVertex(v: Vec3): Vec2{
     });
 }
 
-function drawTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: Vec4){
+function drawTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     drawLine(p1, p2, color);
     drawLine(p2, p3, color);
     drawLine(p3, p1, color);
 }
 
-function drawFilledTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: Vec4){
+function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     if(p1.y > p2.y){
         [p1, p2] = swap(p1, p2);
     }
@@ -109,22 +132,32 @@ function drawFilledTriangle(p1: Vec2, p2: Vec2, p3: Vec2, color: Vec4){
     const x23 = interpolate(p2.y, p2.x, p3.y, p3.x);
     let x123 = [...x12, ...x23];
 
+    let z13 = interpolate(p1.y, p1.z, p3.y, p3.z);
+    const z12 = interpolate(p1.y, p1.z, p2.y, p2.z);
+    const z23 = interpolate(p2.y, p2.z, p3.y, p3.z);
+    let z123 = [...z12, ...z23];
+
     x12.pop();
+    z12.pop();
     if(x13[Math.floor(x13.length / 2)] > x123[Math.floor(x123.length / 2)]){
         [x13, x123] = [x123, x13];
+        [z13, z123] = [z123, z13];
     }
 
     for(let y = p1.y; y <= p3.y; y++){
         const index = Math.ceil(y - p1.y);
         const xLeft = x13[index];
         const xRight = x123[index];
-        for(let x = xLeft, j = 0; x <= xRight; x++, j++){
-            putPixel(x, y, color);
+        const zLeft = z13[index];
+        const zRight = z123[index];
+        const zs = interpolate(xLeft, zLeft, xRight, zRight);
+        for(let x = xLeft; x <= xRight; x++){
+            putPixelZ(x, y, zs[Math.ceil(x - xLeft)], color);
         }
     }
 }
 
-function renderTriangle(trigangle: Triangle, projecteds: Vec2[]){
+function renderTriangle(trigangle: Triangle, projecteds: Vec3[]){
     drawFilledTriangle(
         projecteds[trigangle.x],
         projecteds[trigangle.y],
@@ -508,10 +541,10 @@ function clipping(applieds: Vec3[], triangles: readonly Readonly<Triangle>[]){
     return clipTriangle(status.intersects, triangles, applieds);
 }
 
-function project(vertex: Vec3): Vec2{
+function project(vertex: Vec3): Vec3{
     const m_Projection = makeProjectionTransform();
 
-    return homogeneous3DToCartesian2D(
+    return homogeneous3DToCartesian(
         m3x1ToVec3(
             multi_matrix(
                 m_Projection,
@@ -533,10 +566,10 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
     const clippingTriangles = clipping(applieds, model.triangles)
     if(!clippingTriangles) return;
 
-    const projecteds: Vec2[] = [];
+    const projecteds: Vec3[] = [];
     for(let vertex of applieds){
-        const vertexTo2D = project(vertex);
-        projecteds.push(vertexTo2D);
+        const vertexProjected = project(vertex);
+        projecteds.push(vertexProjected);
     }
 
     for(const triangle of clippingTriangles){
@@ -559,6 +592,7 @@ function renderScene(scene: Scene, renderStatus?: RenderStatus){
 
     ctx.putImageData(ctxBuffer, 0, 0);
     ctxBuffer.data.fill(0);
+    depthBuffer.fill(Infinity);
 }
 
 export { putPixel, drawLine, renderScene }

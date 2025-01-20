@@ -10,6 +10,7 @@ const cW = canvasElement.getAttribute("width") as unknown as number;
 const cH = canvasElement.getAttribute("height") as unknown as number;
 const ctx = canvasElement.getContext("2d")!;
 const ctxBuffer = ctx.getImageData(0, 0, cW, cH);
+const depthBuffer = Array.from({ length: cW * cH }, () => Infinity);
 const canvas = {
     cW,
     cH,
@@ -97,7 +98,7 @@ const cubeModel: Model = {
     ]
 };
 
-export { ctx, ctxBuffer }
+export { ctx, ctxBuffer, depthBuffer }
 export { canvas, viewport, camera }
 export { Triangle }
 export { arrayToTrigangle }
