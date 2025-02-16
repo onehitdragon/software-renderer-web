@@ -707,7 +707,7 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     let i = 0;
     for(const triangle of clippingTriangles){
-        if(i <= 100)
+        if(i <= 10000)
             renderTriangle(triangle, projecteds);
         i++;
     }

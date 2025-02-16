@@ -50,9 +50,9 @@ async function loadModelAtPath(path: string): Promise<Model>{
     if(chunkId != MAIN_CHUNK_ID){
         throw `${chunkId.toString(16)} is not MAIN_CHUNK_ID`;
     }
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
     let chunkLength = reader.getUint32(offset, true); offset += 4;
-    console.log("Chunk_Length: " + chunkLength);
+    //console.log("Chunk_Length: " + chunkLength);
 
     // find EDITOR_CHUNK
     const ignoreOtherChunkUntil = (chunkIdTarget: number) => {
@@ -62,24 +62,24 @@ async function loadModelAtPath(path: string): Promise<Model>{
                 break;
             }
             offset += 2;
-            console.log(`Ignore Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+            //console.log(`Ignore Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
             chunkLength = reader.getUint32(offset, true); offset += 4;
-            console.log("Chunk_Length: " + chunkLength);
+            //console.log("Chunk_Length: " + chunkLength);
             offset += chunkLength - 6;
         }
     }
     ignoreOtherChunkUntil(EDITOR_CHUNK_ID);
     chunkId = reader.getUint16(offset, true); offset += 2;
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
     chunkLength = reader.getUint32(offset, true); offset += 4;
-    console.log("Chunk_Length: " + chunkLength);
+    //console.log("Chunk_Length: " + chunkLength);
 
     // find OBJECT_BLOCK_CHUNK
     ignoreOtherChunkUntil(OBJECT_BLOCK_CHUNK_ID);
     chunkId = reader.getUint16(offset, true); offset += 2;
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
     chunkLength = reader.getUint32(offset, true); offset += 4;
-    console.log("Chunk_Length: " + chunkLength);
+    //console.log("Chunk_Length: " + chunkLength);
     let objectName = "";
     while(1){
         const cCode = reader.getUint8(offset); offset++;
@@ -90,24 +90,24 @@ async function loadModelAtPath(path: string): Promise<Model>{
             break;
         }
     }
-    console.log(`Object_Name: ${objectName}`);
+    //console.log(`Object_Name: ${objectName}`);
     model.name = objectName;
 
     // find TRIANGULAR_MESH_CHUNK
     ignoreOtherChunkUntil(TRIANGULAR_MESH_CHUNK_ID);
     chunkId = reader.getUint16(offset, true); offset += 2;
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
     chunkLength = reader.getUint32(offset, true); offset += 4;
-    console.log("Chunk_Length: " + chunkLength);
+    //console.log("Chunk_Length: " + chunkLength);
 
     // find VERTICES_LIST_CHUNK
     ignoreOtherChunkUntil(VERTICES_LIST_CHUNK_ID);
     chunkId = reader.getUint16(offset, true); offset += 2;
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
     chunkLength = reader.getUint32(offset, true); offset += 4;
-    console.log("Chunk_Length: " + chunkLength);
+    //console.log("Chunk_Length: " + chunkLength);
     let verticesAmount = reader.getUint16(offset, true); offset += 2;
-    console.log("Vertices_Amount: " + verticesAmount);
+    //console.log("Vertices_Amount: " + verticesAmount);
     // 3 vertex, 4 bytes each, 12 bytes total
     const vertices: Vec3[] = [];
     for(let i = 0; i < verticesAmount; i++){
@@ -121,11 +121,11 @@ async function loadModelAtPath(path: string): Promise<Model>{
     // find FACES_DESCRIPTION_CHUNK
     ignoreOtherChunkUntil(FACES_DESCRIPTION_CHUNK_ID);
     chunkId = reader.getUint16(offset, true); offset += 2;
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
     chunkLength = reader.getUint32(offset, true); offset += 4;
-    console.log("Chunk_Length: " + chunkLength);
+    //console.log("Chunk_Length: " + chunkLength);
     let polygonAmount = reader.getUint16(offset, true); offset += 2;
-    console.log("Polygon_Amount: " + polygonAmount);
+    //console.log("Polygon_Amount: " + polygonAmount);
     // 3 indicies 1 face info, 2 bytes each, 8 bytes total
     const triangles: Triangle[] = [];
     for(let i = 0; i < polygonAmount; i++){
@@ -140,7 +140,7 @@ async function loadModelAtPath(path: string): Promise<Model>{
     ///////////////////////////////////////
     // ignoreOtherChunkUntil(MAPPING_COORDINATES_LIST_CHUNK_ID);
     chunkId = reader.getUint16(offset, true); offset += 2;
-    console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
+    //console.log(`Chunk_Id: ${chunkId.toString(16)} (${chunkIdToString(chunkId)})`);
 
     return model;
 }

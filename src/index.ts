@@ -2,7 +2,7 @@ import { Vec3 } from "./common/vector";
 import { Scene, canvas, ctx, cubeModel } from "./global";
 import * as gui from "./gui";
 import { renderScene } from "./helper";
-import dsPath from "../assets/uploads_files_3262252_r8.3ds";
+import dsPath from "../assets/Teapot.3ds";
 import { loadModelAtPath } from "./3dsModelLoader";
 
 async function Main(){
@@ -29,7 +29,6 @@ async function Main(){
     };
 
     const model = await loadModelAtPath(dsPath);
-    console.log(model);
     scene.instances.push(
         {
             model: model,
@@ -52,7 +51,7 @@ async function Main(){
         renderScene(scene, renderStatus);
         updateMonitor();
 
-        //requestAnimationFrame(Loop);
+        requestAnimationFrame(Loop);
     }
     requestAnimationFrame(Loop);
 }
