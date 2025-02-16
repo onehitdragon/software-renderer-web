@@ -21,6 +21,36 @@ function createVec3(){
     }
 }
 
+function roundVec2(vec2: Vec2): Vec2{
+    return {
+        x: Math.round(vec2.x),
+        y: Math.round(vec2.y)
+    }
+}
+
+function subVec2(vec1: Vec2, vec2: Vec2): Vec2{
+    return {
+        x: vec1.x - vec2.x,
+        y: vec1.y - vec2.y
+    }
+}
+
+function roundVec3(vec3: Vec3): Vec3{
+    return {
+        x: Math.round(vec3.x),
+        y: Math.round(vec3.y),
+        z: Math.round(vec3.z)
+    }
+}
+
+function roundXYVec3(vec3: Vec3): Vec3{
+    return {
+        x: Math.round(vec3.x),
+        y: Math.round(vec3.y),
+        z: vec3.z
+    }
+}
+
 function addVec3(vec1: Vec3, vec2: Vec3): Vec3{
     return {
         x: vec1.x + vec2.x,
@@ -57,8 +87,12 @@ function dot(vec1: Vec3, vec2: Vec3){
     return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
 }
 
+function scalarCrossVec2(vec1: Vec2, vec2: Vec2){
+    return (vec1.x * vec2.y) - (vec1.y * vec2.x);
+}
+
 function colorToVec4(
-    color: "red" | "green" | "blue" | "yellow" | "cyan" | "purple" | "white"
+    color: "red" | "green" | "blue" | "yellow" | "cyan" | "purple" | "white" | "black"
 ): Vec4{
     color = color.toLowerCase() as any;
     switch(color){
@@ -74,10 +108,13 @@ function colorToVec4(
             return arrayToVec4([0, 255, 255, 255]);
         case "purple":
             return arrayToVec4([128, 0, 128, 255]);
+        case "black":
+            return arrayToVec4([0, 0, 0, 255]);
         default:
             return arrayToVec4([255, 255, 255, 255])
     }
 }
 
 export { Vec2, Vec3, Vec4 }
-export { createVec3, addVec3, subVec3, scalarVec3, lengthVec3, dot, colorToVec4 }
+export { createVec3, subVec2, addVec3, subVec3, scalarVec3, lengthVec3, dot, colorToVec4, roundVec2, roundVec3,
+    scalarCrossVec2, roundXYVec3 }

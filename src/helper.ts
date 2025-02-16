@@ -1,13 +1,18 @@
 import { homogeneous3DToCartesian, m3x1ToVec3, m4x1ToVec3, m4x1ToVec4, vec3ToVec4, vec4ToM4x1 } from "./common/converter";
 import { M3x1, M3x3, M3x4, M4x1, M4x4, Matrix, multi_M3x3AndVec3, multi_M4x4AndVec4, multi_matrix } from "./common/matrix";
 import { Plane, distancePointToPlane } from "./common/plane";
-import { Vec2, Vec3, Vec4, addVec3, createVec3, dot, lengthVec3, scalarVec3, subVec3 } from "./common/vector";
+import { Vec2, Vec3, Vec4, addVec3, colorToVec4, createVec3, dot, roundVec2, roundVec3, roundXYVec3, lengthVec3, scalarCrossVec2, scalarVec3, subVec3, subVec2 } from "./common/vector";
 import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer, RenderStatus, depthBuffer} from "./global";
 
-function putPixelZ(x: number, y: number, z: number, color: Vec4){
-    x = (x | 0) + canvas.half_cW;
-    y = -(y | 0) + canvas.half_cH;
+function viewportToCanvasCoordinate(vec3: Vec3): Vec3{
+    return {
+        x: vec3.x + canvas.half_cW,
+        y: -vec3.y + canvas.half_cH,
+        z: vec3.z
+    }
+}
 
+function putPixelZ(x: number, y: number, z: number, color: Vec4){
     if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
         return;
     }
@@ -28,9 +33,6 @@ function putPixelZ(x: number, y: number, z: number, color: Vec4){
 }
 
 function putPixel(x: number, y: number, color: Vec4){
-    x = (x | 0) + canvas.half_cW;
-    y = -(y | 0) + canvas.half_cH;
-
     if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
         return;
     }
@@ -42,14 +44,6 @@ function putPixel(x: number, y: number, color: Vec4){
     ctxBuffer.data[++offset] = color.z;
     ctxBuffer.data[++offset] = color.w;
 }
-
-// function putPixel(x: number, y: number, color: CanvasFillStrokeStyles["fillStyle"]){
-//     x = (x | 0) + canvas.cW / 2;
-//     y = -(y | 0) + canvas.cW / 2;
-
-//     ctx.fillStyle = color;
-//     ctx.fillRect(x, y, 1, 1);
-// }
 
 function swap<T1, T2>(vec1: T1, vec2: T2){
     return [vec2, vec1] as const;
@@ -72,27 +66,96 @@ function interpolate(i0: number, d0: number, i1: number, d1: number){
     return values;
 }
 
-function drawLine(start: Vec2, end: Vec2, color: Vec4){
-    const dx = Math.abs(end.x - start.x);
-    const dy = Math.abs(end.y - start.y);
+// function drawLine(start: Vec2, end: Vec2, color: Vec4){
+//     const dx = Math.abs(end.x - start.x);
+//     const dy = Math.abs(end.y - start.y);
 
-    if(dx >= dy){
+//     if(dx >= dy){
+//         if(start.x > end.x){
+//             [start, end] = swap(start, end);
+//         }
+//         const ys = interpolate(start.x, start.y, end.x, end.y);
+//         for(let x = start.x; x <= end.x; x++){
+//             putPixel(x, ys[Math.ceil(x - start.x)], color);
+//         }
+//     }
+//     else{
+//         if(start.y > end.y){
+//             [start, end] = swap(start, end);
+//         }
+//         const xs = interpolate(start.y, start.x, end.y, end.x);
+//         for(let y = start.y; y <= end.y; y++){
+//             putPixel(xs[Math.ceil(y - start.y)], y, color);
+//         }
+//     }
+// }
+
+function drawLineH(start: Vec2, end: Vec2, color: Vec4){
+    let dy = end.y - start.y;
+    let dx = end.x - start.x;
+    let sy = 1;
+    if(end.y < start.y){
+        sy = -1;
+        dy = -dy;
+    }
+    let p = 2 * dy - dx;
+    const incrE = 2 * dy;
+    const incrNE = 2 * (dy - dx);
+    let y = start.y;
+
+    for(let x = start.x; x <= end.x; x++){
+        putPixel(x, y, color);
+        if(p > 0){
+            p += incrNE;
+            y += sy;
+        }
+        else{
+            p += incrE;
+        }
+    }
+}
+
+function drawLineV(start: Vec2, end: Vec2, color: Vec4){
+    let dy = end.y - start.y;
+    let dx = end.x - start.x;
+    let sx = 1;
+    if(end.x < start.x){
+        sx = -1;
+        dx = -dx;
+    }
+    let p = 2 * dx - dy;
+    const incrE = 2 * dx;
+    const incrNE = 2 * (dx - dy);
+    let x = start.x;
+
+    for(let y = start.y; y <= end.y; y++){
+        putPixel(x, y, color);
+        if(p > 0){
+            p += incrNE;
+            x += sx;
+        }
+        else{
+            p += incrE;
+        }
+    }
+}
+
+function drawLine(start: Vec2, end: Vec2, color: Vec4){
+    start = roundVec2(start);
+    end = roundVec2(end);
+    const dy = end.y - start.y;
+    const dx = end.x - start.x;
+    if(Math.abs(dx) >= Math.abs(dy)){
         if(start.x > end.x){
             [start, end] = swap(start, end);
         }
-        const ys = interpolate(start.x, start.y, end.x, end.y);
-        for(let x = start.x; x <= end.x; x++){
-            putPixel(x, ys[Math.ceil(x - start.x)], color);
-        }
+        drawLineH(start, end, color);
     }
     else{
         if(start.y > end.y){
             [start, end] = swap(start, end);
         }
-        const xs = interpolate(start.y, start.x, end.y, end.x);
-        for(let y = start.y; y <= end.y; y++){
-            putPixel(xs[Math.ceil(y - start.y)], y, color);
-        }
+        drawLineV(start, end, color);
     }
 }
 
@@ -111,49 +174,119 @@ function projectVertex(v: Vec3): Vec2{
 }
 
 function drawTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
+    p1 = viewportToCanvasCoordinate(p1);
+    p2 = viewportToCanvasCoordinate(p2);
+    p3 = viewportToCanvasCoordinate(p3);
     drawLine(p1, p2, color);
     drawLine(p2, p3, color);
     drawLine(p3, p1, color);
 }
 
+// function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
+//     if(p1.y > p2.y){
+//         [p1, p2] = swap(p1, p2);
+//     }
+//     if(p1.y > p3.y){
+//         [p1, p3] = swap(p1, p3);
+//     }
+//     if(p2.y > p3.y){
+//         [p2, p3] = swap(p2, p3);
+//     }
+
+//     let x13 = interpolate(p1.y, p1.x, p3.y, p3.x);
+//     const x12 = interpolate(p1.y, p1.x, p2.y, p2.x);
+//     const x23 = interpolate(p2.y, p2.x, p3.y, p3.x);
+//     let x123 = [...x12, ...x23];
+
+//     let z13 = interpolate(p1.y, p1.z, p3.y, p3.z);
+//     const z12 = interpolate(p1.y, p1.z, p2.y, p2.z);
+//     const z23 = interpolate(p2.y, p2.z, p3.y, p3.z);
+//     let z123 = [...z12, ...z23];
+
+//     x12.pop();
+//     z12.pop();
+//     if(x13[Math.floor(x13.length / 2)] > x123[Math.floor(x123.length / 2)]){
+//         [x13, x123] = [x123, x13];
+//         [z13, z123] = [z123, z13];
+//     }
+
+//     for(let y = p1.y; y <= p3.y; y++){
+//         const index = Math.ceil(y - p1.y);
+//         const xLeft = x13[index];
+//         const xRight = x123[index];
+//         const zLeft = z13[index];
+//         const zRight = z123[index];
+//         const zs = interpolate(xLeft, zLeft, xRight, zRight);
+//         for(let x = xLeft; x <= xRight; x++){
+//             putPixelZ(x, y, zs[Math.ceil(x - xLeft)], color);
+//         }
+//     }
+// }
+
 function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
-    if(p1.y > p2.y){
-        [p1, p2] = swap(p1, p2);
-    }
-    if(p1.y > p3.y){
-        [p1, p3] = swap(p1, p3);
-    }
-    if(p2.y > p3.y){
+    p1 = viewportToCanvasCoordinate(p1);
+    p2 = viewportToCanvasCoordinate(p2);
+    p3 = viewportToCanvasCoordinate(p3);
+    const p12 = subVec2(p2, p1);
+    const p13 = subVec2(p3, p1);
+    if(scalarCrossVec2(p12, p13) > 0){
         [p2, p3] = swap(p2, p3);
     }
+    //console.log(p1, p2, p3);
+    p1 = roundXYVec3(p1);
+    p2 = roundXYVec3(p2);
+    p3 = roundXYVec3(p3);
 
-    let x13 = interpolate(p1.y, p1.x, p3.y, p3.x);
-    const x12 = interpolate(p1.y, p1.x, p2.y, p2.x);
-    const x23 = interpolate(p2.y, p2.x, p3.y, p3.x);
-    let x123 = [...x12, ...x23];
+    const xMin = Math.min(p1.x, p2.x, p3.x);
+    const xMax = Math.max(p1.x, p2.x, p3.x);
+    const yMin = Math.min(p1.y, p2.y, p3.y);
+    const yMax = Math.max(p1.y, p2.y, p3.y);
 
-    let z13 = interpolate(p1.y, p1.z, p3.y, p3.z);
-    const z12 = interpolate(p1.y, p1.z, p2.y, p2.z);
-    const z23 = interpolate(p2.y, p2.z, p3.y, p3.z);
-    let z123 = [...z12, ...z23];
+    const dx12 = p2.x - p1.x;
+    const dx23 = p3.x - p2.x;
+    const dx31 = p1.x - p3.x;
+    const dy12 = p2.y - p1.y;
+    const dy23 = p3.y - p2.y;
+    const dy31 = p1.y - p3.y;
 
-    x12.pop();
-    z12.pop();
-    if(x13[Math.floor(x13.length / 2)] > x123[Math.floor(x123.length / 2)]){
-        [x13, x123] = [x123, x13];
-        [z13, z123] = [z123, z13];
-    }
+    let cy12 = dx12 * (yMin - p1.y) - dy12 * (xMin - p1.x);
+    let cy23 = dx23 * (yMin - p2.y) - dy23 * (xMin - p2.x);
+    let cy31 = dx31 * (yMin - p3.y) - dy31 * (xMin - p3.x);
 
-    for(let y = p1.y; y <= p3.y; y++){
-        const index = Math.ceil(y - p1.y);
-        const xLeft = x13[index];
-        const xRight = x123[index];
-        const zLeft = z13[index];
-        const zRight = z123[index];
-        const zs = interpolate(xLeft, zLeft, xRight, zRight);
-        for(let x = xLeft; x <= xRight; x++){
-            putPixelZ(x, y, zs[Math.ceil(x - xLeft)], color);
+    //
+    const area = scalarCrossVec2({x: dx12, y: dy12}, {x: dx23, y: dy23}); // need fix abs
+    const color1 = colorToVec4("red");
+    const color2 = colorToVec4("green");
+    const color3 = colorToVec4("blue");
+
+    let i = 0;
+    for(let y = yMin; y < yMax; y++){
+        let cx12 = cy12;
+        let cx23 = cy23;
+        let cx31 = cy31;
+        for(let x = xMin; x < xMax; x++){
+            if(cx12 <= 0 && cx23 <= 0 && cx31 <= 0){
+                //
+                // const p23 = scalarCrossVec2({x: p2.x - x, y: p2.y - y}, { x: dx23, y: dy23 }) / area;
+                // const p31 = scalarCrossVec2({x: p3.x - x, y: p3.y - y}, { x: dx31, y: dy31 }) / area;
+                // const p12 = scalarCrossVec2({x: p1.x - x, y: p1.y - y}, { x: dx12, y: dy12 }) / area;
+                // const z = p23 * p1.z + p31 * p2.z + p12 * p3.z;
+                //console.log(z);
+
+                // setTimeout(() => {
+                    putPixel(x, y, colorToVec4("black"));
+
+                //     ctx.putImageData(ctxBuffer, 0, 0);
+                // }, i * 100);
+                i++;
+            }
+            cx12 -= dy12;
+            cx23 -= dy23;
+            cx31 -= dy31;
         }
+        cy12 += dx12;
+        cy23 += dx23;
+        cy31 += dx31;
     }
 }
 
@@ -572,13 +705,16 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
         projecteds.push(vertexProjected);
     }
 
+    let i = 0;
     for(const triangle of clippingTriangles){
-        renderTriangle(triangle, projecteds);
+        if(i <= 100)
+            renderTriangle(triangle, projecteds);
+        i++;
     }
 
-    if(renderStatus){
-        renderStatus.totalTrig += clippingTriangles.length;
-    }
+    // if(renderStatus){
+    //     renderStatus.totalTrig += clippingTriangles.length;
+    // }
 }
 
 function renderScene(scene: Scene, renderStatus?: RenderStatus){
@@ -595,4 +731,4 @@ function renderScene(scene: Scene, renderStatus?: RenderStatus){
     depthBuffer.fill(Infinity);
 }
 
-export { putPixel, drawLine, renderScene }
+export { putPixel, renderScene }

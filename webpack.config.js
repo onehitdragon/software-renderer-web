@@ -16,6 +16,10 @@ module.exports = {
           test: /\.ts$/,         // Match TypeScript files
           use: 'ts-loader',      // Use ts-loader to compile them
           exclude: /node_modules/
+        },
+        {
+          test: /\.3ds$/i,
+          type: 'asset/resource', // Use Webpack 5's built-in asset modules
         }
       ]
     },
