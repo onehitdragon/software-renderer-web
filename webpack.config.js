@@ -27,6 +27,7 @@ module.exports = {
       new CopyPlugin({
         patterns: [
           { from: 'src/index.html', to: 'index.html' },  // Include file without processing
+          { from: 'miscellaneous/Argentavis_Egg.png', to: 'Argentavis_Egg.png' },  // Include file without processing
         ]
       })
     ],

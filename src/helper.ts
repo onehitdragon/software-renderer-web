@@ -3,6 +3,7 @@ import { M3x1, M3x3, M3x4, M4x1, M4x4, Matrix, multi_M3x3AndVec3, multi_M4x4AndV
 import { Plane, distancePointToPlane } from "./common/plane";
 import { Vec2, Vec3, Vec4, addVec3, colorToVec4, createVec3, dot, roundVec2, roundVec3, roundXYVec3, lengthVec3, scalarCrossVec2, scalarVec3, subVec3, subVec2 } from "./common/vector";
 import { canvas, viewport, ctx, camera, Triangle, Instance, Scene, Transform, ctxBuffer, RenderStatus, depthBuffer} from "./global";
+import * as fixedNumber from "./fixedNumber";
 
 function viewportToCanvasCoordinate(vec3: Vec3): Vec3{
     return {
@@ -232,15 +233,20 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     if(scalarCrossVec2(p12, p13) > 0){
         [p2, p3] = swap(p2, p3);
     }
-    //console.log(p1, p2, p3);
-    p1 = roundXYVec3(p1);
-    p2 = roundXYVec3(p2);
-    p3 = roundXYVec3(p3);
 
-    const xMin = Math.min(p1.x, p2.x, p3.x);
-    const xMax = Math.max(p1.x, p2.x, p3.x);
-    const yMin = Math.min(p1.y, p2.y, p3.y);
-    const yMax = Math.max(p1.y, p2.y, p3.y);
+    console.log(p1, p2, p3);
+    p1 = fixedNumber.fixedXY(p1);
+    p2 = fixedNumber.fixedXY(p2);
+    p3 = fixedNumber.fixedXY(p3);
+    console.log(p1, p2, p3);
+    console.log(fixedNumber.floatXY(p1), fixedNumber.floatXY(p2), fixedNumber.floatXY(p3));
+    const xMin = Math.min(p1.x, p2.x, p3.x) >> fixedNumber.RESOLUTION;
+    const yMin = Math.min(p1.y, p2.y, p3.y) >> fixedNumber.RESOLUTION;
+    const xMax = Math.max(p1.x, p2.x, p3.x) + 15>> fixedNumber.RESOLUTION;
+    const yMax = Math.max(p1.y, p2.y, p3.y) + 15 >> fixedNumber.RESOLUTION;
+    console.log(xMin, yMin, xMax, yMax);
+
+    return;
 
     const dx12 = p2.x - p1.x;
     const dx23 = p3.x - p2.x;
@@ -254,10 +260,11 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     let cy31 = dx31 * (yMin - p3.y) - dy31 * (xMin - p3.x);
 
     //
-    const area = scalarCrossVec2({x: dx12, y: dy12}, {x: dx23, y: dy23}); // need fix abs
-    const color1 = colorToVec4("red");
-    const color2 = colorToVec4("green");
-    const color3 = colorToVec4("blue");
+    // const area = scalarCrossVec2({x: dx12, y: dy12}, {x: dx23, y: dy23}); // need fix abs
+    // const color1 = colorToVec4("red");
+    // const color2 = colorToVec4("green");
+    // const color3 = colorToVec4("blue");
+    //console.log(p1, p2, p3);
 
     let i = 0;
     for(let y = yMin; y < yMax; y++){
@@ -265,7 +272,7 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
         let cx23 = cy23;
         let cx31 = cy31;
         for(let x = xMin; x < xMax; x++){
-            if(cx12 <= 0 && cx23 <= 0 && cx31 <= 0){
+            if(cx12 < 0 && cx23 < 0 && cx31 < 0){
                 //
                 // const p23 = scalarCrossVec2({x: p2.x - x, y: p2.y - y}, { x: dx23, y: dy23 }) / area;
                 // const p31 = scalarCrossVec2({x: p3.x - x, y: p3.y - y}, { x: dx31, y: dy31 }) / area;
@@ -273,11 +280,11 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
                 // const z = p23 * p1.z + p31 * p2.z + p12 * p3.z;
                 //console.log(z);
 
-                // setTimeout(() => {
+                //setTimeout(() => {
                     putPixel(x, y, colorToVec4("black"));
 
-                //     ctx.putImageData(ctxBuffer, 0, 0);
-                // }, i * 100);
+                    //ctx.putImageData(ctxBuffer, 0, 0);
+                //}, i * 100);
                 i++;
             }
             cx12 -= dy12;
@@ -707,7 +714,7 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     let i = 0;
     for(const triangle of clippingTriangles){
-        if(i <= 10000)
+        if(i == 4 || i == 5)
             renderTriangle(triangle, projecteds);
         i++;
     }
