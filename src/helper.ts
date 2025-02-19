@@ -238,26 +238,33 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     p1 = fixedNumber.fixedXY(p1);
     p2 = fixedNumber.fixedXY(p2);
     p3 = fixedNumber.fixedXY(p3);
-    console.log(p1, p2, p3);
-    console.log(fixedNumber.floatXY(p1), fixedNumber.floatXY(p2), fixedNumber.floatXY(p3));
-    const xMin = Math.min(p1.x, p2.x, p3.x) >> fixedNumber.RESOLUTION;
-    const yMin = Math.min(p1.y, p2.y, p3.y) >> fixedNumber.RESOLUTION;
-    const xMax = Math.max(p1.x, p2.x, p3.x) + 15>> fixedNumber.RESOLUTION;
-    const yMax = Math.max(p1.y, p2.y, p3.y) + 15 >> fixedNumber.RESOLUTION;
-    console.log(xMin, yMin, xMax, yMax);
-
-    return;
-
+    const xMinF = Math.min(p1.x, p2.x, p3.x);
+    const yMinF = Math.min(p1.y, p2.y, p3.y);
+    const xMaxF = Math.max(p1.x, p2.x, p3.x);
+    const yMaxF = Math.max(p1.y, p2.y, p3.y);
     const dx12 = p2.x - p1.x;
     const dx23 = p3.x - p2.x;
     const dx31 = p1.x - p3.x;
     const dy12 = p2.y - p1.y;
     const dy23 = p3.y - p2.y;
     const dy31 = p1.y - p3.y;
+    console.log(fixedNumber.floatXY(p1), fixedNumber.floatXY(p2), fixedNumber.floatXY(p3));
+    console.log(p1, p2, p3);
+    console.log("dx: ", dx12, dx23, dx31);
+    console.log("dy: ", dy12, dy23, dy31);
+    console.log(xMinF, yMinF, xMaxF, yMaxF);
+    let cy12 = dx12 * (yMinF + 8 - p1.y) - dy12 * (xMinF + 8 - p1.x);
+    let cy23 = dx23 * (yMinF + 8 - p2.y) - dy23 * (xMinF + 8 - p2.x);
+    let cy31 = dx31 * (yMinF + 8 - p3.y) - dy31 * (xMinF + 8 - p3.x);
+    console.log(cy12, cy23, cy31);
+    if(dy12 > 0 || (dy12 == 0 && dx12 < 0)) cy12--;
+    if(dy23 > 0 || (dy23 == 0 && dx23 < 0)) cy23--;
+    if(dy31 > 0 || (dy31 == 0 && dx31 < 0)) cy31--;
 
-    let cy12 = dx12 * (yMin - p1.y) - dy12 * (xMin - p1.x);
-    let cy23 = dx23 * (yMin - p2.y) - dy23 * (xMin - p2.x);
-    let cy31 = dx31 * (yMin - p3.y) - dy31 * (xMin - p3.x);
+    const xMin = xMinF >> fixedNumber.RESOLUTION;
+    const yMin = yMinF >> fixedNumber.RESOLUTION;
+    const xMax = xMaxF + 15 >> fixedNumber.RESOLUTION;
+    const yMax = yMaxF + 15 >> fixedNumber.RESOLUTION;
 
     //
     // const area = scalarCrossVec2({x: dx12, y: dy12}, {x: dx23, y: dy23}); // need fix abs
@@ -284,7 +291,7 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
                     putPixel(x, y, colorToVec4("black"));
 
                     //ctx.putImageData(ctxBuffer, 0, 0);
-                //}, i * 100);
+                //}, i * 10);
                 i++;
             }
             cx12 -= dy12;
@@ -714,8 +721,12 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     let i = 0;
     for(const triangle of clippingTriangles){
-        if(i == 4 || i == 5)
-            renderTriangle(triangle, projecteds);
+        //setTimeout(() => {
+            if(i == 0)
+                renderTriangle(triangle, projecteds);
+
+            //ctx.putImageData(ctxBuffer, 0, 0);
+        //}, i * 1000);
         i++;
     }
 

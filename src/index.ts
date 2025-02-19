@@ -59,10 +59,3 @@ async function Main(){
 }
 
 Main();
-
-const p = fixedXY({ x: 1.2, y: 1.4 });
-console.log(p);
-console.log(p.x / 2 ** 4, p.y / 2 ** 4);
-console.log(p.x + 8 >> 4, p.y + 8 >> 4);
-console.log(p.y - p.x);
-console.log((p.y - p.x) / 2 ** 4);
