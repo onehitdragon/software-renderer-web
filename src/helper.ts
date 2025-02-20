@@ -234,65 +234,42 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
         [p2, p3] = swap(p2, p3);
     }
 
-    console.log(p1, p2, p3);
     p1 = fixedNumber.fixedXY(p1);
     p2 = fixedNumber.fixedXY(p2);
     p3 = fixedNumber.fixedXY(p3);
-    const xMinF = Math.min(p1.x, p2.x, p3.x);
-    const yMinF = Math.min(p1.y, p2.y, p3.y);
-    const xMaxF = Math.max(p1.x, p2.x, p3.x);
-    const yMaxF = Math.max(p1.y, p2.y, p3.y);
+    const xMin = Math.min(p1.x, p2.x, p3.x) >> fixedNumber.RESOLUTION;
+    const yMin = Math.min(p1.y, p2.y, p3.y) >> fixedNumber.RESOLUTION;
+    const xMax = Math.max(p1.x, p2.x, p3.x) + 15 >> fixedNumber.RESOLUTION;
+    const yMax = Math.max(p1.y, p2.y, p3.y) + 15 >> fixedNumber.RESOLUTION;
     const dx12 = p2.x - p1.x;
     const dx23 = p3.x - p2.x;
     const dx31 = p1.x - p3.x;
     const dy12 = p2.y - p1.y;
     const dy23 = p3.y - p2.y;
     const dy31 = p1.y - p3.y;
-    console.log(fixedNumber.floatXY(p1), fixedNumber.floatXY(p2), fixedNumber.floatXY(p3));
-    console.log(p1, p2, p3);
-    console.log("dx: ", dx12, dx23, dx31);
-    console.log("dy: ", dy12, dy23, dy31);
-    console.log(xMinF, yMinF, xMaxF, yMaxF);
-    let cy12 = dx12 * (yMinF + 8 - p1.y) - dy12 * (xMinF + 8 - p1.x);
-    let cy23 = dx23 * (yMinF + 8 - p2.y) - dy23 * (xMinF + 8 - p2.x);
-    let cy31 = dx31 * (yMinF + 8 - p3.y) - dy31 * (xMinF + 8 - p3.x);
-    console.log(cy12, cy23, cy31);
-    if(dy12 > 0 || (dy12 == 0 && dx12 < 0)) cy12--;
-    if(dy23 > 0 || (dy23 == 0 && dx23 < 0)) cy23--;
-    if(dy31 > 0 || (dy31 == 0 && dx31 < 0)) cy31--;
 
-    const xMin = xMinF >> fixedNumber.RESOLUTION;
-    const yMin = yMinF >> fixedNumber.RESOLUTION;
-    const xMax = xMaxF + 15 >> fixedNumber.RESOLUTION;
-    const yMax = yMaxF + 15 >> fixedNumber.RESOLUTION;
+    const xMinF = (xMin + 0.5) * fixedNumber.MULTIPLIER;
+    const yMinF = (yMin + 0.5) * fixedNumber.MULTIPLIER;
+    let cy12 = (dx12 * (yMinF - p1.y) >> fixedNumber.RESOLUTION) - (dy12 * (xMinF - p1.x) >> fixedNumber.RESOLUTION);
+    let cy23 = (dx23 * (yMinF - p2.y) >> fixedNumber.RESOLUTION) - (dy23 * (xMinF - p2.x) >> fixedNumber.RESOLUTION);
+    let cy31 = (dx31 * (yMinF - p3.y) >> fixedNumber.RESOLUTION) - (dy31 * (xMinF - p3.x) >> fixedNumber.RESOLUTION);
+    if(dy12 > 0 || (dy12 == 0 && dx12 < 0)){
+        cy12--;
+    }
+    if(dy23 > 0 || (dy23 == 0 && dx23 < 0)){
+        cy23--;
+    }
+    if(dy31 > 0 || (dy31 == 0 && dx31 < 0)){
+        cy31--;
+    }
 
-    //
-    // const area = scalarCrossVec2({x: dx12, y: dy12}, {x: dx23, y: dy23}); // need fix abs
-    // const color1 = colorToVec4("red");
-    // const color2 = colorToVec4("green");
-    // const color3 = colorToVec4("blue");
-    //console.log(p1, p2, p3);
-
-    let i = 0;
     for(let y = yMin; y < yMax; y++){
         let cx12 = cy12;
         let cx23 = cy23;
         let cx31 = cy31;
         for(let x = xMin; x < xMax; x++){
             if(cx12 < 0 && cx23 < 0 && cx31 < 0){
-                //
-                // const p23 = scalarCrossVec2({x: p2.x - x, y: p2.y - y}, { x: dx23, y: dy23 }) / area;
-                // const p31 = scalarCrossVec2({x: p3.x - x, y: p3.y - y}, { x: dx31, y: dy31 }) / area;
-                // const p12 = scalarCrossVec2({x: p1.x - x, y: p1.y - y}, { x: dx12, y: dy12 }) / area;
-                // const z = p23 * p1.z + p31 * p2.z + p12 * p3.z;
-                //console.log(z);
-
-                //setTimeout(() => {
-                    putPixel(x, y, colorToVec4("black"));
-
-                    //ctx.putImageData(ctxBuffer, 0, 0);
-                //}, i * 10);
-                i++;
+                putPixel(x, y, colorToVec4("black"));
             }
             cx12 -= dy12;
             cx23 -= dy23;
@@ -722,7 +699,7 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
     let i = 0;
     for(const triangle of clippingTriangles){
         //setTimeout(() => {
-            if(i == 0)
+            //if(i == 4 || i == 5)
                 renderTriangle(triangle, projecteds);
 
             //ctx.putImageData(ctxBuffer, 0, 0);

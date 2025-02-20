@@ -19,5 +19,9 @@ function floatXY<T extends Vec2 | Vec3>(vec: T): T{
     }
 }
 
+function float(num: number){
+    return num / MULTIPLIER;
+}
+
 export { RESOLUTION, MULTIPLIER }
-export { fixedXY, floatXY }
+export { fixedXY, floatXY, float }

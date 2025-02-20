@@ -49,13 +49,19 @@ async function Main(){
 
     // Loop
     function Loop(){
-        //scene.instances[0].transform.rotation += 0.1;
+        // scene.instances[0].transform.rotation += 0.5;
         renderScene(scene, renderStatus);
         updateMonitor();
 
-        //requestAnimationFrame(Loop);
+        requestAnimationFrame(Loop);
     }
     requestAnimationFrame(Loop);
 }
 
 Main();
+
+const p = fixedXY({ x: 3.5, y: 4.5 });
+console.log(p);
+console.log(p.x / 2 ** 4, p.y / 2 ** 4);
+console.log(p.x * p.y);
+console.log((p.x * p.y >> 4) / 2 ** 4);
