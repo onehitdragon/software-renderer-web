@@ -67,7 +67,8 @@ interface Scene{
 }
 
 interface RenderStatus{
-    totalTrig: number
+    totalTrig: number,
+    renderTimeTake: number
 }
 
 const cubeModel: Model = {

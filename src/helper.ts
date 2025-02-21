@@ -14,9 +14,9 @@ function viewportToCanvasCoordinate(vec3: Vec3): Vec3{
 }
 
 function putPixelZ(x: number, y: number, z: number, color: Vec4){
-    if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
-        return;
-    }
+    // if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
+    //     return;
+    // }
 
     if(z > depthBuffer[x + y * canvas.cW]){
         return;
@@ -25,25 +25,32 @@ function putPixelZ(x: number, y: number, z: number, color: Vec4){
         depthBuffer[x + y * canvas.cW] = z;
     }
 
-    let offset = (x * 4) + (y * canvas.four_mul_cW);
+    const offset = (x * 4) + (y * canvas.four_mul_cW);
 
-    ctxBuffer.data[offset] = color.x;
+    ctxBuffer.data[offset + 0] = color.x;
     ctxBuffer.data[offset + 1] = color.y;
     ctxBuffer.data[offset + 2] = color.z;
     ctxBuffer.data[offset + 3] = color.w;
 }
 
 function putPixel(x: number, y: number, color: Vec4){
-    if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
-        return;
-    }
+    // if(x < 0 || x >= canvas.cW || y < 0 || y >= canvas.cH){
+    //     return;
+    // }
 
-    let offset = (x * 4) + (y * canvas.four_mul_cW);
+    const offset = (x * 4) + (y * canvas.four_mul_cW);
 
+    ctxBuffer.data[offset + 0] = color.x;
+    ctxBuffer.data[offset + 1] = color.y;
+    ctxBuffer.data[offset + 2] = color.z;
+    ctxBuffer.data[offset + 3] = color.w;
+}
+
+function putPixelWithOffset(offset: number, color: Vec4){
     ctxBuffer.data[offset] = color.x;
-    ctxBuffer.data[++offset] = color.y;
-    ctxBuffer.data[++offset] = color.z;
-    ctxBuffer.data[++offset] = color.w;
+    ctxBuffer.data[offset + 1] = color.y;
+    ctxBuffer.data[offset + 2] = color.z;
+    ctxBuffer.data[offset + 3] = color.w;
 }
 
 function swap<T1, T2>(vec1: T1, vec2: T2){
@@ -184,6 +191,7 @@ function drawTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
 }
 
 function drawFilledTriangle1(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
+    color = colorToVec4("black");
     p1 = viewportToCanvasCoordinate(p1);
     p2 = viewportToCanvasCoordinate(p2);
     p3 = viewportToCanvasCoordinate(p3);
@@ -231,18 +239,23 @@ function drawFilledTriangle1(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     let cy23 = C2 + dx23 * yMinF - dy23 * xMinF;
     let cy31 = C3 + dx31 * yMinF - dy31 * xMinF;
 
+    let bufferOffset = 4 * xMin + 4 * canvas.cW * yMin;
+    const stride = 4 * (canvas.cW - xMax) + 4 * xMin;
+
     for(let y = yMin; y < yMax; y++){
         let cx12 = cy12;
         let cx23 = cy23;
         let cx31 = cy31;
         for(let x = xMin; x < xMax; x++){
             if(cx12 < 0 && cx23 < 0 && cx31 < 0){
-                putPixel(x, y, colorToVec4("black"));
+                putPixelWithOffset(bufferOffset, color);
             }
+            bufferOffset += 4;
             cx12 -= dy12F;
             cx23 -= dy23F;
             cx31 -= dy31F;
         }
+        bufferOffset += stride;
         cy12 += dx12F;
         cy23 += dx23F;
         cy31 += dx31F;
@@ -250,6 +263,7 @@ function drawFilledTriangle1(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
 }
 
 function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
+    color = colorToVec4("black");
     p1 = viewportToCanvasCoordinate(p1);
     p2 = viewportToCanvasCoordinate(p2);
     p3 = viewportToCanvasCoordinate(p3);
@@ -325,11 +339,12 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
             if(a == 0){
                 continue; // ignore block
             }
-            else if(a == 12){
+
+            if(a == 12){
                 // accept block
                 for(let yi = y; yi < y + q; yi++){
                     for(let xi = x; xi < x + q; xi++){
-                        putPixel(xi, yi, colorToVec4("black"));
+                        putPixel(xi, yi, color);
                     }
                 }
             }
@@ -344,7 +359,7 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
                     let cx31 = cy31;
                     for(let xi = x; xi < x + q; xi++){
                         if(cx12 < 0 && cx23 < 0 && cx31 < 0){
-                            putPixel(xi, yi, colorToVec4("black"));
+                            putPixel(xi, yi, color);
                         }
                         cx12 -= dy12F;
                         cx23 -= dy23F;
@@ -777,9 +792,10 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     let i = 0;
     const start = performance.now();
+    console.log(clippingTriangles.length);
     for(const triangle of clippingTriangles){
         //setTimeout(() => {
-            //if(i == 4 || i == 5)
+            if(i == 2)
                 renderTriangle(triangle, projecteds);
 
             //ctx.putImageData(ctxBuffer, 0, 0);
@@ -787,11 +803,11 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
         i++;
     }
     const end = performance.now();
-    console.log("time take: ", end - start, "ms");
 
-    // if(renderStatus){
-    //     renderStatus.totalTrig += clippingTriangles.length;
-    // }
+    if(renderStatus){
+        renderStatus.totalTrig += clippingTriangles.length;
+        renderStatus.renderTimeTake = end - start;
+    }
 }
 
 function renderScene(scene: Scene, renderStatus?: RenderStatus){
