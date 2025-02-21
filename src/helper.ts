@@ -183,48 +183,7 @@ function drawTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     drawLine(p3, p1, color);
 }
 
-// function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
-//     if(p1.y > p2.y){
-//         [p1, p2] = swap(p1, p2);
-//     }
-//     if(p1.y > p3.y){
-//         [p1, p3] = swap(p1, p3);
-//     }
-//     if(p2.y > p3.y){
-//         [p2, p3] = swap(p2, p3);
-//     }
-
-//     let x13 = interpolate(p1.y, p1.x, p3.y, p3.x);
-//     const x12 = interpolate(p1.y, p1.x, p2.y, p2.x);
-//     const x23 = interpolate(p2.y, p2.x, p3.y, p3.x);
-//     let x123 = [...x12, ...x23];
-
-//     let z13 = interpolate(p1.y, p1.z, p3.y, p3.z);
-//     const z12 = interpolate(p1.y, p1.z, p2.y, p2.z);
-//     const z23 = interpolate(p2.y, p2.z, p3.y, p3.z);
-//     let z123 = [...z12, ...z23];
-
-//     x12.pop();
-//     z12.pop();
-//     if(x13[Math.floor(x13.length / 2)] > x123[Math.floor(x123.length / 2)]){
-//         [x13, x123] = [x123, x13];
-//         [z13, z123] = [z123, z13];
-//     }
-
-//     for(let y = p1.y; y <= p3.y; y++){
-//         const index = Math.ceil(y - p1.y);
-//         const xLeft = x13[index];
-//         const xRight = x123[index];
-//         const zLeft = z13[index];
-//         const zRight = z123[index];
-//         const zs = interpolate(xLeft, zLeft, xRight, zRight);
-//         for(let x = xLeft; x <= xRight; x++){
-//             putPixelZ(x, y, zs[Math.ceil(x - xLeft)], color);
-//         }
-//     }
-// }
-
-function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
+function drawFilledTriangle1(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     p1 = viewportToCanvasCoordinate(p1);
     p2 = viewportToCanvasCoordinate(p2);
     p3 = viewportToCanvasCoordinate(p3);
@@ -247,21 +206,30 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     const dy12 = p2.y - p1.y;
     const dy23 = p3.y - p2.y;
     const dy31 = p1.y - p3.y;
-
-    const xMinF = (xMin + 0.5) * fixedNumber.MULTIPLIER;
-    const yMinF = (yMin + 0.5) * fixedNumber.MULTIPLIER;
-    let cy12 = (dx12 * (yMinF - p1.y) >> fixedNumber.RESOLUTION) - (dy12 * (xMinF - p1.x) >> fixedNumber.RESOLUTION);
-    let cy23 = (dx23 * (yMinF - p2.y) >> fixedNumber.RESOLUTION) - (dy23 * (xMinF - p2.x) >> fixedNumber.RESOLUTION);
-    let cy31 = (dx31 * (yMinF - p3.y) >> fixedNumber.RESOLUTION) - (dy31 * (xMinF - p3.x) >> fixedNumber.RESOLUTION);
+    const dx12F = dx12 << fixedNumber.RESOLUTION;
+    const dx23F = dx23 << fixedNumber.RESOLUTION;
+    const dx31F = dx31 << fixedNumber.RESOLUTION;
+    const dy12F = dy12 << fixedNumber.RESOLUTION;
+    const dy23F = dy23 << fixedNumber.RESOLUTION;
+    const dy31F = dy31 << fixedNumber.RESOLUTION;
+    let C1 = dy12 * p1.x - dx12 * p1.y;
+    let C2 = dy23 * p2.x - dx23 * p2.y;
+    let C3 = dy31 * p3.x - dx31 * p3.y;
     if(dy12 > 0 || (dy12 == 0 && dx12 < 0)){
-        cy12--;
+        C1--;
     }
     if(dy23 > 0 || (dy23 == 0 && dx23 < 0)){
-        cy23--;
+        C2--;
     }
     if(dy31 > 0 || (dy31 == 0 && dx31 < 0)){
-        cy31--;
+        C3--;
     }
+
+    const xMinF = (xMin << fixedNumber.RESOLUTION) + 8;
+    const yMinF = (yMin << fixedNumber.RESOLUTION) + 8;
+    let cy12 = C1 + dx12 * yMinF - dy12 * xMinF;
+    let cy23 = C2 + dx23 * yMinF - dy23 * xMinF;
+    let cy31 = C3 + dx31 * yMinF - dy31 * xMinF;
 
     for(let y = yMin; y < yMax; y++){
         let cx12 = cy12;
@@ -271,13 +239,124 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
             if(cx12 < 0 && cx23 < 0 && cx31 < 0){
                 putPixel(x, y, colorToVec4("black"));
             }
-            cx12 -= dy12;
-            cx23 -= dy23;
-            cx31 -= dy31;
+            cx12 -= dy12F;
+            cx23 -= dy23F;
+            cx31 -= dy31F;
         }
-        cy12 += dx12;
-        cy23 += dx23;
-        cy31 += dx31;
+        cy12 += dx12F;
+        cy23 += dx23F;
+        cy31 += dx31F;
+    }
+}
+
+function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
+    p1 = viewportToCanvasCoordinate(p1);
+    p2 = viewportToCanvasCoordinate(p2);
+    p3 = viewportToCanvasCoordinate(p3);
+    const p12 = subVec2(p2, p1);
+    const p13 = subVec2(p3, p1);
+    if(scalarCrossVec2(p12, p13) > 0){
+        [p2, p3] = swap(p2, p3);
+    }
+
+    p1 = fixedNumber.fixedXY(p1);
+    p2 = fixedNumber.fixedXY(p2);
+    p3 = fixedNumber.fixedXY(p3);
+    let xMin = Math.min(p1.x, p2.x, p3.x) >> fixedNumber.RESOLUTION;
+    let yMin = Math.min(p1.y, p2.y, p3.y) >> fixedNumber.RESOLUTION;
+    const xMax = Math.max(p1.x, p2.x, p3.x) + 15 >> fixedNumber.RESOLUTION;
+    const yMax = Math.max(p1.y, p2.y, p3.y) + 15 >> fixedNumber.RESOLUTION;
+    const dx12 = p2.x - p1.x;
+    const dx23 = p3.x - p2.x;
+    const dx31 = p1.x - p3.x;
+    const dy12 = p2.y - p1.y;
+    const dy23 = p3.y - p2.y;
+    const dy31 = p1.y - p3.y;
+    const dx12F = dx12 << fixedNumber.RESOLUTION;
+    const dx23F = dx23 << fixedNumber.RESOLUTION;
+    const dx31F = dx31 << fixedNumber.RESOLUTION;
+    const dy12F = dy12 << fixedNumber.RESOLUTION;
+    const dy23F = dy23 << fixedNumber.RESOLUTION;
+    const dy31F = dy31 << fixedNumber.RESOLUTION;
+    let C1 = dy12 * p1.x - dx12 * p1.y;
+    let C2 = dy23 * p2.x - dx23 * p2.y;
+    let C3 = dy31 * p3.x - dx31 * p3.y;
+    if(dy12 > 0 || (dy12 == 0 && dx12 < 0)){
+        C1--;
+    }
+    if(dy23 > 0 || (dy23 == 0 && dx23 < 0)){
+        C2--;
+    }
+    if(dy31 > 0 || (dy31 == 0 && dx31 < 0)){
+        C3--;
+    }
+
+    const q = 8;
+    xMin = xMin & ~(q - 1);
+    yMin = yMin & ~(q - 1);
+
+    for(let y = yMin; y < yMax; y += q){
+        for(let x = xMin; x < xMax; x += q){
+            const x0 = (x << fixedNumber.RESOLUTION) + 8;
+            const y0 = (y << fixedNumber.RESOLUTION) + 8;
+            const x1 = (x + q - 1 << fixedNumber.RESOLUTION) + 8;
+            const y1 = (y + q - 1 << fixedNumber.RESOLUTION) + 8;
+
+            const _00_12 = C1 + dx12 * y0 - dy12 * x0 < 0;
+            const _10_12 = C1 + dx12 * y0 - dy12 * x1 < 0;
+            const _01_12 = C1 + dx12 * y1 - dy12 * x0 < 0;
+            const _11_12 = C1 + dx12 * y1 - dy12 * x1 < 0;
+
+            const _00_23 = C2 + dx23 * y0 - dy23 * x0 < 0;
+            const _10_23 = C2 + dx23 * y0 - dy23 * x1 < 0;
+            const _01_23 = C2 + dx23 * y1 - dy23 * x0 < 0;
+            const _11_23 = C2 + dx23 * y1 - dy23 * x1 < 0;
+
+            const _00_31 = C3 + dx31 * y0 - dy31 * x0 < 0;
+            const _10_31 = C3 + dx31 * y0 - dy31 * x1 < 0;
+            const _01_31 = C3 + dx31 * y1 - dy31 * x0 < 0;
+            const _11_31 = C3 + dx31 * y1 - dy31 * x1 < 0;
+
+            const a = 
+            Number(_00_12) + Number(_10_12) + Number(_01_12) + Number(_11_12) +
+            Number(_00_23) + Number(_10_23) + Number(_01_23) + Number(_11_23) +
+            Number(_00_31) + Number(_10_31) + Number(_01_31) + Number(_11_31);
+
+            if(a == 0){
+                continue; // ignore block
+            }
+            else if(a == 12){
+                // accept block
+                for(let yi = y; yi < y + q; yi++){
+                    for(let xi = x; xi < x + q; xi++){
+                        putPixel(xi, yi, colorToVec4("black"));
+                    }
+                }
+            }
+            else{
+                // partially block
+                let cy12 = C1 + dx12 * y0 - dy12 * x0;
+                let cy23 = C2 + dx23 * y0 - dy23 * x0;
+                let cy31 = C3 + dx31 * y0 - dy31 * x0;
+                for(let yi = y; yi < y + q; yi++){
+                    let cx12 = cy12;
+                    let cx23 = cy23;
+                    let cx31 = cy31;
+                    for(let xi = x; xi < x + q; xi++){
+                        if(cx12 < 0 && cx23 < 0 && cx31 < 0){
+                            putPixel(xi, yi, colorToVec4("black"));
+                        }
+                        cx12 -= dy12F;
+                        cx23 -= dy23F;
+                        cx31 -= dy31F;
+                    }
+                    cy12 += dx12F;
+                    cy23 += dx23F;
+                    cy31 += dx31F;
+                }
+            }
+            
+        }
     }
 }
 
@@ -697,6 +776,7 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
     }
 
     let i = 0;
+    const start = performance.now();
     for(const triangle of clippingTriangles){
         //setTimeout(() => {
             //if(i == 4 || i == 5)
@@ -706,6 +786,8 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
         //}, i * 1000);
         i++;
     }
+    const end = performance.now();
+    console.log("time take: ", end - start, "ms");
 
     // if(renderStatus){
     //     renderStatus.totalTrig += clippingTriangles.length;

@@ -4,7 +4,7 @@ import * as gui from "./gui";
 import { renderScene } from "./helper";
 import dsPath from "../assets/Teapot.3ds";
 import { loadModelAtPath } from "./3dsModelLoader";
-import { fixedXY } from "./fixedNumber";
+import * as fixedNumber from "./fixedNumber";
 
 async function Main(){
     // Prepare scene
@@ -53,15 +53,9 @@ async function Main(){
         renderScene(scene, renderStatus);
         updateMonitor();
 
-        requestAnimationFrame(Loop);
+        //requestAnimationFrame(Loop);
     }
     requestAnimationFrame(Loop);
 }
 
 Main();
-
-const p = fixedXY({ x: 3.5, y: 4.5 });
-console.log(p);
-console.log(p.x / 2 ** 4, p.y / 2 ** 4);
-console.log(p.x * p.y);
-console.log((p.x * p.y >> 4) / 2 ** 4);
