@@ -267,6 +267,7 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
     p1 = viewportToCanvasCoordinate(p1);
     p2 = viewportToCanvasCoordinate(p2);
     p3 = viewportToCanvasCoordinate(p3);
+
     const p12 = subVec2(p2, p1);
     const p13 = subVec2(p3, p1);
     if(scalarCrossVec2(p12, p13) > 0){
@@ -384,71 +385,6 @@ function renderTriangle(trigangle: Triangle, projecteds: Vec3[]){
     );
 }
 
-function makeModelTransform(transform: Transform): M4x4{
-    const m_scale: M4x4 = [
-        [transform.scale, 0, 0, 0],
-        [0, transform.scale, 0, 0],
-        [0, 0, transform.scale, 0],
-        [0, 0, 0, 1]
-    ];
-    const rotationRad = transform.rotation * Math.PI / 180;
-    const m_rotation: M4x4 = [
-        [Math.cos(rotationRad), 0, Math.sin(rotationRad), 0],
-        [0, 1, 0, 0],
-        [-Math.sin(rotationRad), 0, Math.cos(rotationRad), 0],
-        [0, 0, 0, 1]
-    ];
-    const m_translation: M4x4 = [
-        [1, 0, 0, transform.translation.x],
-        [0, 1, 0, transform.translation.y],
-        [0, 0, 1, transform.translation.z],
-        [0, 0, 0, 1]
-    ];
-
-    return multi_matrix(multi_matrix(m_translation, m_rotation) as M4x4, m_scale) as M4x4;
-}
-
-function makeCameraTransform(): M4x4{
-    const m_translation: M4x4 = [
-        [1, 0, 0, -camera.transform.translation.x],
-        [0, 1, 0, -camera.transform.translation.y],
-        [0, 0, 1, -camera.transform.translation.z],
-        [0, 0, 0, 1]
-    ];
-    const rotationRad = -camera.transform.rotation * Math.PI / 180;
-    const m_rotation: M4x4 = [
-        [Math.cos(rotationRad), 0, Math.sin(rotationRad), 0],
-        [0, 1, 0, 0],
-        [-Math.sin(rotationRad), 0, Math.cos(rotationRad), 0],
-        [0, 0, 0, 1]
-    ];
-
-    return multi_matrix(m_rotation, m_translation) as M4x4;
-}
-
-function makeProjectionTransform(): M3x4{
-    return [
-        [camera.distanceToViewport * canvas.cW / viewport.vW, 0, 0, 0],
-        [0, camera.distanceToViewport * canvas.cH / viewport.vH, 0, 0],
-        [0, 0, 1, 0]
-    ]
-}
-
-function apply(vertex: Readonly<Vec3>, transform: Transform): Vec3{
-    const m_Model = makeModelTransform(transform);
-    const m_Camera = makeCameraTransform();
-
-    return m4x1ToVec3(
-        multi_matrix(
-            multi_matrix(
-                m_Camera,
-                m_Model
-            ) as M4x4,
-            vec4ToM4x1(vec3ToVec4(vertex, 1))
-        ) as M4x1
-    );
-}
-
 // function apply(vertex: Vec3, transform: Transform): Vec2{
 //     const m_Model = makeModelTransform(transform);
 //     const m_Camera = makeCameraTransform();
@@ -470,7 +406,7 @@ function apply(vertex: Readonly<Vec3>, transform: Transform): Vec3{
 //     );
 // }
 
-function getBoudingSphere(verticies: Vec3[]): [Vec3, number]{
+function getBoudingSphere(verticies: readonly Readonly<Vec3>[]): [Vec3, number]{
     let centerSphere: Vec3 = { x: 0, y: 0, z: 0 };
     let rSphere = 0;
     for(const vertex of verticies){
@@ -516,7 +452,7 @@ function getClippingPlanes(){
     return [nearPlane, leftPlane, rightPlane, bottomPlane, topPlane];
 }
 
-function clipWholeObject(clippingPlanes: Plane[], sphere: [Vec3, number]){
+function clipWholeObject(clippingPlanes: readonly Readonly<Plane>[], sphere: [Vec3, number]){
     const rears: Plane[] = [];
     const fronts: Plane[] = [];
     const intersects: Plane[] = [];
@@ -527,6 +463,7 @@ function clipWholeObject(clippingPlanes: Plane[], sphere: [Vec3, number]){
         const d = distancePointToPlane(plane, centerSphere);
         if(d < -rSphere){
             rears.push(plane);
+            break;
         }
         if(d > rSphere){
             fronts.push(plane);
@@ -536,9 +473,6 @@ function clipWholeObject(clippingPlanes: Plane[], sphere: [Vec3, number]){
         }
     }
 
-    // console.log("rears: ", rears.length);
-    // console.log("fronts: ", fronts.length);
-    // console.log("intersects: ", intersects.length);
     return { rears, fronts, intersects };
 }
 
@@ -548,13 +482,20 @@ function clipWholeObject(clippingPlanes: Plane[], sphere: [Vec3, number]){
  * @param triangles 
  * @param verticies these verticies was transformed to cam space and was placed in new applieds list 
  */
-function clipTriangle(intersectPlanes: Plane[], triangles: readonly Readonly<Triangle>[], verticies: Vec3[]){
-    const triangleProcesseds: Triangle[] = [];
+function clipTriangle(
+    intersectPlanes: readonly Readonly<Plane>[],
+    triangles: readonly Readonly<Triangle>[],
+    verticies: Vec3[]
+){
+    const trianglesWaitingProcess: [Triangle, number][] = Array.from(triangles, (triangle) => [triangle, 0]);
+    const trianglesProcessed: Triangle[] = [];
 
-    for(let j = 0; j < triangles.length; j++){
-        const triangle = triangles[j];
-        triangleProcesseds.push(triangle);
-        for(let i = 0; i < intersectPlanes.length; i++){
+    while(trianglesWaitingProcess.length > 0){
+        const triangleWaitingProcess = trianglesWaitingProcess.pop()!;
+        const triangle = triangleWaitingProcess[0];
+        const startPlane = triangleWaitingProcess[1];
+        let front = 0;
+        for(let i = startPlane; i < intersectPlanes.length; i++){
             const plane = intersectPlanes[i];
             const vertexA = verticies[triangle.x];
             const vertexB = verticies[triangle.y];
@@ -564,10 +505,12 @@ function clipTriangle(intersectPlanes: Plane[], triangles: readonly Readonly<Tri
             const dC = distancePointToPlane(plane, vertexC);
 
             if(dA < 0 && dB < 0 && dC < 0){
-                triangleProcesseds.pop();
                 break;
             }
-            else if(dA > 0 && dB > 0 && dC > 0){}
+            else if(dA >= 0 && dB >= 0 && dC >= 0){
+                front++;
+                continue;
+            }
             else{
                 if(oneVertexFront()){
                     break;
@@ -583,42 +526,19 @@ function clipTriangle(intersectPlanes: Plane[], triangles: readonly Readonly<Tri
                     return false;
                 }
                 
-                triangleProcesseds.pop();
-                const newTriangle1 = createOneTriangle(out[0], plane);
-                const num_newVertex1 = verticies.push(newTriangle1[1]) - 1;
-                const num_newVertex2 = verticies.push(newTriangle1[2]) - 1;
-                switch(out[1]){
-                    case "x":
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.x,
-                                y: num_newVertex1,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        break;
-                    case "y":
-                        triangleProcesseds.push(
-                            { 
-                                x: num_newVertex1,
-                                y: triangle.y,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        break;
-                    case "z":
-                        triangleProcesseds.push(
-                            { 
-                                x: num_newVertex1,
-                                y: num_newVertex2,
-                                z: triangle.z,
-                                color: triangle.color
-                            }
-                        );
-                        break;
-                }
+                const [frontVertex, rearVertex1, rearVertex2] = out[0];
+                const intersectVertex1 = getPointInLineAndThroughPlane(frontVertex, rearVertex1, plane);
+                const intersectVertex2 = getPointInLineAndThroughPlane(frontVertex, rearVertex2, plane);
+                const frontIndex = out[1];
+                const num_newVertex1 = verticies.push(intersectVertex1) - 1;
+                const num_newVertex2 = verticies.push(intersectVertex2) - 1;
+                const newTriangle = {
+                    x: frontIndex,
+                    y: num_newVertex1,
+                    z: num_newVertex2,
+                    color: triangle.color
+                };
+                trianglesWaitingProcess.push([newTriangle, i + 1]);
         
                 return true;
             }
@@ -628,98 +548,68 @@ function clipTriangle(intersectPlanes: Plane[], triangles: readonly Readonly<Tri
                     return false;
                 }
 
-                triangleProcesseds.pop();
-                const [newTriangle1, newTriangle2] = createTwoTriangle(out[0], plane);
-                const num_newVertex1 = verticies.push(newTriangle1[1]) - 1;
-                const num_newVertex2 = verticies.push(newTriangle1[2]) - 1;
-                switch(out[1]){
-                    case "xy":
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.x,
-                                y: num_newVertex1,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.x,
-                                y: triangle.y,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        break;
-                    case "xz":
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.x,
-                                y: num_newVertex1,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.x,
-                                y: triangle.z,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        break;
-                    case "yz":
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.y,
-                                y: num_newVertex1,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        triangleProcesseds.push(
-                            { 
-                                x: triangle.y,
-                                y: triangle.z,
-                                z: num_newVertex2,
-                                color: triangle.color
-                            }
-                        );
-                        break;
-                }
+                const [frontVertex1, frontVertex2, rearVertex] = out[0];
+                const intersectVertex1 = getPointInLineAndThroughPlane(frontVertex1, rearVertex, plane);
+                const intersectVertex2 = getPointInLineAndThroughPlane(frontVertex2, rearVertex, plane);
+                const [frontIndex1, frontIndex2] = out[1];
+                const num_newVertex1 = verticies.push(intersectVertex1) - 1;
+                const num_newVertex2 = verticies.push(intersectVertex2) - 1;
+                const newTriangle1 = {
+                    x: frontIndex1,
+                    y: frontIndex2,
+                    z: num_newVertex1,
+                    color: triangle.color
+                };
+                const newTriangle2 = {
+                    x: frontIndex2,
+                    y: num_newVertex1,
+                    z: num_newVertex2,
+                    color: triangle.color
+                };
+                trianglesWaitingProcess.push([newTriangle1, i + 1]);
+                trianglesWaitingProcess.push([newTriangle2, i + 1]);
 
                 return true;
             }
-            function isOneVertexFront(): false | [[Vec3, Vec3, Vec3], string]{
-                if(dA > 0 && dB < 0 && dC < 0){
-                    return [[vertexA, vertexB, vertexC], "x"];
+            /**
+             * 
+             * @returns [[front vertex, rear vertex, rear vertex], front index]
+             */
+            function isOneVertexFront(): false | [[Vec3, Vec3, Vec3], number]{
+                if(dA >= 0 && dB < 0 && dC < 0){
+                    return [[vertexA, vertexB, vertexC], triangle.x];
                 }
-                if(dB > 0 && dA < 0 && dC < 0){
-                    return [[vertexB, vertexA, vertexC], "y"];
+                if(dB >= 0 && dA < 0 && dC < 0){
+                    return [[vertexB, vertexA, vertexC], triangle.y];
                 }
-                if(dC > 0 && dA < 0 && dB < 0){
-                    return [[vertexC, vertexA, vertexB], "z"];
+                if(dC >= 0 && dA < 0 && dB < 0){
+                    return [[vertexC, vertexA, vertexB], triangle.z];
                 }
         
                 return false;
             }
-            function isTwoVertexFront(): false | [[Vec3, Vec3, Vec3], string]{
-                if(dA > 0 && dB > 0 && dC < 0){
-                    return [[vertexA, vertexB, vertexC], "xy"];
+            /**
+             * 
+             * @returns [[front vertex, front vertex, rear vertex], [front index, front index]]
+             */
+            function isTwoVertexFront(): false | [[Vec3, Vec3, Vec3], [number, number]]{
+                if(dA >= 0 && dB >= 0 && dC < 0){
+                    return [[vertexA, vertexB, vertexC], [triangle.x, triangle.y]];
                 }
-                if(dA > 0 && dC > 0 && dB < 0){
-                    return [[vertexA, vertexC, vertexB], "xz"];
+                if(dA >= 0 && dC >= 0 && dB < 0){
+                    return [[vertexA, vertexC, vertexB], [triangle.x, triangle.z]];
                 }
-                if(dB > 0 && dC > 0 && dA < 0){
-                    return [[vertexB, vertexC, vertexA], "yz"];
+                if(dB >= 0 && dC >= 0 && dA < 0){
+                    return [[vertexB, vertexC, vertexA], [triangle.y, triangle.z]];
                 }
         
                 return false;
             }
         }
+        if(front == intersectPlanes.length - startPlane){
+            trianglesProcessed.push(triangle);
+        }
     }
-    
     
     function getPointInLineAndThroughPlane(pointA: Vec3, pointB: Vec3, plane: Plane){
         const AB = subVec3(pointB, pointA);
@@ -727,23 +617,8 @@ function clipTriangle(intersectPlanes: Plane[], triangles: readonly Readonly<Tri
 
         return addVec3(pointA, scalarVec3(t, AB));
     }
-    function createOneTriangle(old: readonly [Vec3, Vec3, Vec3], plane: Plane): [Vec3, Vec3, Vec3]{
-        const pointB = getPointInLineAndThroughPlane(old[0], old[1], plane);
-        const pointC = getPointInLineAndThroughPlane(old[0], old[2], plane);
 
-        return [old[0], pointB, pointC];
-    }
-    function createTwoTriangle(old: readonly [Vec3, Vec3, Vec3], plane: Plane): [[Vec3, Vec3, Vec3], [Vec3, Vec3, Vec3]]{
-        const pointA = getPointInLineAndThroughPlane(old[0], old[2], plane);
-        const pointB = getPointInLineAndThroughPlane(old[1], old[2], plane);
-
-        return [
-            [old[0], pointA, pointB],
-            [old[0], old[1], pointB]
-        ] as const;
-    }
-
-    return triangleProcesseds;
+    return trianglesProcessed;
 }
 
 function clipping(applieds: Vec3[], triangles: readonly Readonly<Triangle>[]){
@@ -757,6 +632,71 @@ function clipping(applieds: Vec3[], triangles: readonly Readonly<Triangle>[]){
     }
 
     return clipTriangle(status.intersects, triangles, applieds);
+}
+
+function makeModelTransform(transform: Transform): M4x4{
+    const m_scale: M4x4 = [
+        [transform.scale, 0, 0, 0],
+        [0, transform.scale, 0, 0],
+        [0, 0, transform.scale, 0],
+        [0, 0, 0, 1]
+    ];
+    const rotationRad = transform.rotation * Math.PI / 180;
+    const m_rotation: M4x4 = [
+        [Math.cos(rotationRad), 0, Math.sin(rotationRad), 0],
+        [0, 1, 0, 0],
+        [-Math.sin(rotationRad), 0, Math.cos(rotationRad), 0],
+        [0, 0, 0, 1]
+    ];
+    const m_translation: M4x4 = [
+        [1, 0, 0, transform.translation.x],
+        [0, 1, 0, transform.translation.y],
+        [0, 0, 1, transform.translation.z],
+        [0, 0, 0, 1]
+    ];
+
+    return multi_matrix(multi_matrix(m_translation, m_rotation) as M4x4, m_scale) as M4x4;
+}
+
+function makeCameraTransform(): M4x4{
+    const m_translation: M4x4 = [
+        [1, 0, 0, -camera.transform.translation.x],
+        [0, 1, 0, -camera.transform.translation.y],
+        [0, 0, 1, -camera.transform.translation.z],
+        [0, 0, 0, 1]
+    ];
+    const rotationRad = -camera.transform.rotation * Math.PI / 180;
+    const m_rotation: M4x4 = [
+        [Math.cos(rotationRad), 0, Math.sin(rotationRad), 0],
+        [0, 1, 0, 0],
+        [-Math.sin(rotationRad), 0, Math.cos(rotationRad), 0],
+        [0, 0, 0, 1]
+    ];
+
+    return multi_matrix(m_rotation, m_translation) as M4x4;
+}
+
+function apply(vertex: Readonly<Vec3>, transform: Transform): Vec3{
+    const m_Model = makeModelTransform(transform);
+    const m_Camera = makeCameraTransform();
+
+    return m4x1ToVec3(
+        multi_matrix(
+            multi_matrix(
+                m_Camera,
+                m_Model
+            ) as M4x4,
+            vec4ToM4x1(vec3ToVec4(vertex, 1))
+        ) as M4x1
+    );
+}
+
+function makeProjectionTransform(): M3x4{
+    return [
+        [camera.distanceToViewport * canvas.cW / viewport.vW, 0, 0, 0],
+        [0, camera.distanceToViewport * canvas.cH / viewport.vH, 0, 0],
+        [0, 0, 1, 0]
+    ]
 }
 
 function project(vertex: Vec3): Vec3{
@@ -792,10 +732,9 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     let i = 0;
     const start = performance.now();
-    console.log(clippingTriangles.length);
     for(const triangle of clippingTriangles){
         //setTimeout(() => {
-            if(i == 2)
+            //if(i == 2)
                 renderTriangle(triangle, projecteds);
 
             //ctx.putImageData(ctxBuffer, 0, 0);

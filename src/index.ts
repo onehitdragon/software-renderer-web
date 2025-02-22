@@ -15,7 +15,7 @@ async function Main(){
                 transform: {
                     scale: 1,
                     rotation: 0,
-                    translation: { x: 4.5, y: 0, z: 4.5 }
+                    translation: { x: 0, y: 0, z: 4.5 }
                 }
             },
             // {
@@ -53,7 +53,7 @@ async function Main(){
         renderScene(scene, renderStatus);
         updateMonitor();
 
-        //requestAnimationFrame(Loop);
+        requestAnimationFrame(Loop);
     }
     requestAnimationFrame(Loop);
 }
