@@ -713,6 +713,10 @@ function project(vertex: Vec3): Vec3{
 }
 
 function renderInstance(instance: Instance, renderStatus?: RenderStatus){
+    let start = 0;
+    let end = 0;
+
+    start = performance.now(); //
     const model = instance.model;
 
     const applieds: Vec3[] = [];
@@ -729,9 +733,10 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
         const vertexProjected = project(vertex);
         projecteds.push(vertexProjected);
     }
+    const geometryTime = performance.now() - start; //
 
+    start = performance.now(); //
     let i = 0;
-    const start = performance.now();
     for(const triangle of clippingTriangles){
         //setTimeout(() => {
             //if(i == 2)
@@ -741,11 +746,13 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
         //}, i * 1000);
         i++;
     }
-    const end = performance.now();
+    const rasterizationTime = performance.now() - start; //
 
     if(renderStatus){
         renderStatus.totalTrig += clippingTriangles.length;
-        renderStatus.renderTimeTake = end - start;
+        renderStatus.geometryTime = geometryTime;
+        renderStatus.rasterizationTime = rasterizationTime;
+        renderStatus.totalTimeTake = geometryTime + rasterizationTime;
     }
 }
 

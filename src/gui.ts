@@ -27,7 +27,13 @@ function addMonitor(monitor: Monitor, renderStatus: RenderStatus){
     f.addBinding(renderStatus, "totalTrig", {
         readonly: true, format: (v) => v.toFixed(0)
     });
-    f.addBinding(renderStatus, "renderTimeTake", {
+    f.addBinding(renderStatus, "geometryTime", {
+        readonly: true
+    });
+    f.addBinding(renderStatus, "rasterizationTime", {
+        readonly: true
+    });
+    f.addBinding(renderStatus, "totalTimeTake", {
         readonly: true
     })
 
@@ -43,7 +49,9 @@ function showMonitor(){
     };
     const renderStatus: RenderStatus = {
         totalTrig: 0,
-        renderTimeTake: 0
+        geometryTime: 0,
+        rasterizationTime: 0,
+        totalTimeTake: 0
     };
     const [btn] = addMonitor(monitor, renderStatus);
     btn.element.querySelector("button")!.setAttribute("style", `color: ${monitor.recording ? "green" : "red"};`);

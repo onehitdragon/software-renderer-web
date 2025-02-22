@@ -10,14 +10,14 @@ async function Main(){
     // Prepare scene
     const scene: Scene = {
         instances: [
-            {
-                model: cubeModel,
-                transform: {
-                    scale: 1,
-                    rotation: 0,
-                    translation: { x: 0, y: 0, z: 4.5 }
-                }
-            },
+            // {
+            //     model: cubeModel,
+            //     transform: {
+            //         scale: 2,
+            //         rotation: 0,
+            //         translation: { x: 0, y: 0, z: 4.5 }
+            //     }
+            // },
             // {
             //     model: cubeModel,
             //     transform: {
@@ -29,17 +29,17 @@ async function Main(){
         ]
     };
 
-    // const model = await loadModelAtPath(dsPath);
-    // scene.instances.push(
-    //     {
-    //         model: model,
-    //         transform: {
-    //             scale: 0.04,
-    //             rotation: 0,
-    //             translation: { x: 0, y: 0, z: 4.5 }
-    //         }
-    //     },
-    // );
+    const model = await loadModelAtPath(dsPath);
+    scene.instances.push(
+        {
+            model: model,
+            transform: {
+                scale: 0.04,
+                rotation: 0,
+                translation: { x: 0, y: 0, z: 4.5 }
+            }
+        },
+    );
 
     // UI
     for(const instance of scene.instances){
