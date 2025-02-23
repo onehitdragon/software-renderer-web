@@ -676,19 +676,26 @@ function makeCameraTransform(): M4x4{
     return multi_matrix(m_rotation, m_translation) as M4x4;
 }
 
-function apply(vertex: Readonly<Vec3>, transform: Transform): Vec3{
-    const m_Model = makeModelTransform(transform);
+function apply(instance: Instance){
+    const m_Model = makeModelTransform(instance.transform);
     const m_Camera = makeCameraTransform();
+    const m_CameraModel = multi_matrix(
+        m_Camera,
+        m_Model
+    ) as M4x4;
 
-    return m4x1ToVec3(
-        multi_matrix(
+    const applieds: Vec3[] = [];
+    for(let vertex of instance.model.vertices){
+        vertex = m4x1ToVec3(
             multi_matrix(
-                m_Camera,
-                m_Model
-            ) as M4x4,
-            vec4ToM4x1(vec3ToVec4(vertex, 1))
-        ) as M4x1
-    );
+                m_CameraModel,
+                vec4ToM4x1(vec3ToVec4(vertex, 1))
+            ) as M4x1
+        );
+        applieds.push(vertex);
+    }
+
+    return applieds;
 }
 
 function makeProjectionTransform(): M3x4{
@@ -699,40 +706,35 @@ function makeProjectionTransform(): M3x4{
     ]
 }
 
-function project(vertex: Vec3): Vec3{
+function project(applieds: readonly Readonly<Vec3>[]){
     const m_Projection = makeProjectionTransform();
 
-    return homogeneous3DToCartesian(
-        m3x1ToVec3(
-            multi_matrix(
-                m_Projection,
-                vec4ToM4x1(vec3ToVec4(vertex, 1))
-            ) as M3x1
-        )
-    );
+    const projecteds: Vec3[] = [];
+    for(let vertex of applieds){
+        const vertexProjected = homogeneous3DToCartesian(
+            m3x1ToVec3(
+                multi_matrix(
+                    m_Projection,
+                    vec4ToM4x1(vec3ToVec4(vertex, 1))
+                ) as M3x1
+            )
+        );
+        projecteds.push(vertexProjected);
+    }
+
+    return projecteds;
 }
 
 function renderInstance(instance: Instance, renderStatus?: RenderStatus){
     let start = 0;
-    let end = 0;
 
     start = performance.now(); //
-    const model = instance.model;
+    const applieds = apply(instance);
 
-    const applieds: Vec3[] = [];
-    for(let vertex of model.vertices){
-        vertex = apply(vertex, instance.transform);
-        applieds.push(vertex);
-    }
-
-    const clippingTriangles = clipping(applieds, model.triangles)
+    const clippingTriangles = clipping(applieds, instance.model.triangles)
     if(!clippingTriangles) return;
 
-    const projecteds: Vec3[] = [];
-    for(let vertex of applieds){
-        const vertexProjected = project(vertex);
-        projecteds.push(vertexProjected);
-    }
+    const projecteds = project(applieds);
     const geometryTime = performance.now() - start; //
 
     start = performance.now(); //
