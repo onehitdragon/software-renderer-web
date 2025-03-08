@@ -5,6 +5,7 @@
   "scripts": {
     "build": "webpack",
     "dev": "webpack -w",
+    "asbuild": "asc --config asconfig.json --target release",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

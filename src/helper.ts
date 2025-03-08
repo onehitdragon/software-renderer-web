@@ -736,17 +736,11 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     const projecteds = project(applieds);
     const geometryTime = performance.now() - start; //
+    
 
     start = performance.now(); //
-    let i = 0;
     for(const triangle of clippingTriangles){
-        //setTimeout(() => {
-            //if(i == 2)
-                renderTriangle(triangle, projecteds);
-
-            //ctx.putImageData(ctxBuffer, 0, 0);
-        //}, i * 1000);
-        i++;
+        renderTriangle(triangle, projecteds);
     }
     const rasterizationTime = performance.now() - start; //
 

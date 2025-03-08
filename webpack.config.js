@@ -9,6 +9,10 @@ module.exports = {
     },
     resolve: {
       extensions: ['.ts', '.js'], // Resolve .ts and .js files
+      fallback: {
+        fs: false,
+        path: false
+      }
     },
     module: {
       rules: [
