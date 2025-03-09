@@ -32,13 +32,27 @@ uintptr_t stack_current(){
 //     return arr1;
 // }
 
+size_t createArr(int n){
+    unsigned char *arr = new unsigned char[n];
+    std::fill_n(arr, n, 'A');
+
+    return (size_t)arr;
+}
+
+std::vector<Vec3> copyArr(const std::vector<Vec3> &arr){
+    std::vector<Vec3> arr2 = arr;
+    arr2.push_back(Vec3(-10, -10, -10));
+    // for(int i = 1; i <= 5; i++){
+    //     arr2.push_back(Vec3(-i, -i, -i));
+    // }
+    return arr2;
+}
 
 EMSCRIPTEN_BINDINGS(index){
     emscripten::function("stack_base", &stack_base);
     emscripten::function("stack_end", &stack_end);
     emscripten::function("stack_current", &stack_current);
 
-    // emscripten::function("sum1", &sum);
-    // emscripten::function("sum2", &sum, emscripten::return_value_policy::take_ownership());
-    // emscripten::function("sum3", &sum, emscripten::return_value_policy::reference());
+    emscripten::function("createArr", &createArr);
+    emscripten::function("copyArr", &copyArr, emscripten::return_value_policy::take_ownership());
 }

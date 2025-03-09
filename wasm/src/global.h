@@ -48,4 +48,14 @@ public:
 };
 extern Camera camera;
 
+extern unsigned int canvas_cW;
+extern unsigned int canvas_cH;
+extern float canvas_half_cW;
+extern float canvas_half_cH;
+extern unsigned int canvas_four_mul_cW;
+extern unsigned char *canvasBuffer;
+extern size_t canvasBufferLength;
+extern float viewport_vW;
+extern float viewport_vH;
+
 #endif

@@ -22,6 +22,36 @@ Camera::Camera(){}
 Camera::Camera(float distanceToViewport, Transform transform): distanceToViewport(distanceToViewport), transform(transform){}
 Camera camera = {1, Transform(Vec3(0, 0, 0), 0, 0)};
 
+unsigned int canvas_cW = 0;
+unsigned int canvas_cH = 0;
+float canvas_half_cW = 0;
+float canvas_half_cH = 0;
+unsigned int canvas_four_mul_cW;
+unsigned char *canvasBuffer = nullptr;
+size_t canvasBufferLength = 0;
+float viewport_vW = 0;
+float viewport_vH = 0;
+size_t init_canvas_buffer(unsigned int cW, unsigned int cH, float vW, float vH){
+    canvas_cW = cW;
+    canvas_cH = cH;
+    canvasBufferLength = cW * cH * 4;
+    canvasBuffer = new unsigned char[canvasBufferLength];
+    viewport_vW = vW;
+    viewport_vH = vH;
+    canvas_half_cW = cW / (float)2;
+    canvas_half_cH = cH / (float)2;
+    canvas_four_mul_cW = cW * 4;
+
+    // printf("canvas_cW: %d\n", canvas_cW);
+    // printf("canvas_cH: %d\n", canvas_cH);
+    // printf("canvas_half_cW: %f\n", canvas_half_cW);
+    // printf("canvas_half_cH: %f\n", canvas_half_cH);
+    // printf("viewport_vW: %f\n", viewport_vW);
+    // printf("viewport_vH: %f\n", viewport_vH);
+
+    return (size_t)canvasBuffer;
+}
+
 EMSCRIPTEN_BINDINGS(global){
     emscripten::class_<Vec2>("Vec2")
         .constructor()
@@ -68,4 +98,5 @@ EMSCRIPTEN_BINDINGS(global){
         .property("model", &Instance::model, emscripten::return_value_policy::reference())
         .property("transform", &Instance::transform, emscripten::return_value_policy::reference())
         ;
+    emscripten::function("init_canvas_buffer", &init_canvas_buffer);
 }
