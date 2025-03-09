@@ -67,6 +67,9 @@
         "text_encoding": "cpp",
         "thread": "cpp",
         "bitset": "cpp",
-        "deque": "cpp"
+        "deque": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "semaphore": "cpp"
     }
 }

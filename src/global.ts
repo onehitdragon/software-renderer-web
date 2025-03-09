@@ -6,8 +6,8 @@ if(canvasElement == null){
     throw "dont find canvas1";
 }
 
-const cW = canvasElement.getAttribute("width") as unknown as number;
-const cH = canvasElement.getAttribute("height") as unknown as number;
+const cW = parseInt(canvasElement.getAttribute("width")!);
+const cH = parseInt(canvasElement.getAttribute("height")!);
 const ctx = canvasElement.getContext("2d")!;
 const ctxBuffer = ctx.getImageData(0, 0, cW, cH);
 const depthBuffer = Array.from({ length: cW * cH }, () => Infinity);

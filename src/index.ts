@@ -1,5 +1,5 @@
 import { Vec3 } from "./common/vector";
-import { Model, Scene, Transform, canvas, ctx, cubeModel } from "./global";
+import { Model, Scene, Transform, canvas, ctx, ctxBuffer, cubeModel, viewport } from "./global";
 import * as gui from "./gui";
 import { renderScene } from "./helper";
 import dsPath from "../assets/Teapot.3ds";
@@ -51,16 +51,29 @@ async function Main(){
             transform: loadedModelTransform
         },
     );
+
+    const canvasBufferPtr = wasmModule["init_canvas_buffer"](canvas.cW, canvas.cH, viewport.vW, viewport.vH);
+    const canvasBufferLength = canvas.cW * canvas.cH * 4;
+    console.log("canvasBuffer:", canvasBufferPtr, canvasBufferLength);
+    wasmModule["init_fixed_number"](4);
     const loadedModelWasm = createInstanceWasm(wasmModule, loadedModel, loadedModelTransform);
     console.log(loadedModel);
     console.log(loadedModelWasm);
+
+    let stop = false;
     runBtn.onclick = () => {
-        const applieds = wasmModule["apply"](loadedModelWasm);
-        console.log(applieds);
-        applieds.delete();
-        console.log(new wasmModule["Vec3"]());
+        stop = true;
+
+        // console.log(new wasmModule["Vec3"]());
         // console.log(applieds.size());
         // console.log(applieds.get(0));
+
+        // console.log(wasmModule["render_instance"](loadedModelWasm));
+        // console.log(wasmModule["createArr"](500000));
+        // console.log(new wasmModule["Vec3"](12345, 12345, 12345));
+
+        //showMemory(wasmModule);
+        downloadMemory(wasmModule);
     }
 
     // UI
@@ -71,14 +84,20 @@ async function Main(){
 
     // Loop
     function Loop(){
-        // const start = performance.now(); //
-        // const applieds = wasmModule["apply"](loadedModelWasm);
-        // applieds.delete();
-        // const geometryTime = performance.now() - start; //
-        // renderStatus.geometryTime = geometryTime;
+        if(stop) return;
+
+        const start = performance.now(); //
+
+        wasmModule["render_instance"](loadedModelWasm);
+        const buffer = new Uint8ClampedArray(wasmModule.HEAP8.buffer, canvasBufferPtr, canvasBufferLength);
+        const imageData = new ImageData(buffer, canvas.cW, canvas.cH);
+        ctx.putImageData(imageData, 0, 0);
+
+        const geometryTime = performance.now() - start; //
+        renderStatus.geometryTime = geometryTime;
 
         //scene.instances[0].transform.rotation += 0.5;
-        renderScene(scene, renderStatus);
+        //renderScene(scene, renderStatus);
         updateMonitor();
 
         requestAnimationFrame(Loop);

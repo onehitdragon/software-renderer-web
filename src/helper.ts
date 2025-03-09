@@ -274,13 +274,16 @@ function drawFilledTriangle(p1: Vec3, p2: Vec3, p3: Vec3, color: Vec4){
         [p2, p3] = swap(p2, p3);
     }
 
+    // console.log(p1, p2, p3);
     p1 = fixedNumber.fixedXY(p1);
     p2 = fixedNumber.fixedXY(p2);
     p3 = fixedNumber.fixedXY(p3);
+    // console.log(p1, p2, p3);
     let xMin = Math.min(p1.x, p2.x, p3.x) >> fixedNumber.RESOLUTION;
     let yMin = Math.min(p1.y, p2.y, p3.y) >> fixedNumber.RESOLUTION;
     const xMax = Math.max(p1.x, p2.x, p3.x) + 15 >> fixedNumber.RESOLUTION;
     const yMax = Math.max(p1.y, p2.y, p3.y) + 15 >> fixedNumber.RESOLUTION;
+    //console.log(xMin, yMin, xMax, yMax);
     const dx12 = p2.x - p1.x;
     const dx23 = p3.x - p2.x;
     const dx31 = p1.x - p3.x;
@@ -736,7 +739,6 @@ function renderInstance(instance: Instance, renderStatus?: RenderStatus){
 
     const projecteds = project(applieds);
     const geometryTime = performance.now() - start; //
-    
 
     start = performance.now(); //
     for(const triangle of clippingTriangles){
